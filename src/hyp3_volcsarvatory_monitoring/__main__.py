@@ -5,11 +5,11 @@ from argparse import ArgumentParser
 
 from hyp3lib.aws import upload_file_to_s3
 
-from hyp3_volcsarvatory_monitoring.process import process_volcsarvatory_monitoring
+from volcsarvatory_monitoring.process import process_volcsarvatory_monitoring
 
 
 def main() -> None:
-    """HyP3 entrypoint for hyp3_volcsarvatory_monitoring."""
+    """HyP3 entrypoint for volcsarvatory_monitoring."""
     parser = ArgumentParser()
     parser.add_argument('--bucket', help='AWS S3 bucket HyP3 for upload the final product(s)')
     parser.add_argument('--bucket-prefix', default='', help='Add a bucket prefix to product(s)')

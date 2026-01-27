@@ -17,6 +17,6 @@ jobs:
     permissions:
       contents: read
     with:
-      local_package_name: hyp3_volcsarvatory_monitoring
+      local_package_name: volcsarvatory_monitoring
       python_versions: >-
         ["3.10", "3.11", "3.12", "3.13"]

@@ -36,13 +36,13 @@ USER ${CONDA_UID}
 SHELL ["/bin/bash", "-l", "-c"]
 WORKDIR /home/conda/
 
-COPY --chown=${CONDA_UID}:${CONDA_GID} . /hyp3-volcsarvatory-monitoring/
+COPY --chown=${CONDA_UID}:${CONDA_GID} . /volcsarvatory-monitoring/
 
-RUN mamba env create -f /hyp3-volcsarvatory-monitoring/environment.yml && \
+RUN mamba env create -f /volcsarvatory-monitoring/environment.yml && \
     conda clean -afy && \
-    conda activate hyp3-volcsarvatory-monitoring && \
-    sed -i 's/conda activate base/conda activate hyp3-volcsarvatory-monitoring/g' /home/conda/.profile && \
-    python -m pip install --no-cache-dir /hyp3-volcsarvatory-monitoring
+    conda activate volcsarvatory-monitoring && \
+    sed -i 's/conda activate base/conda activate volcsarvatory-monitoring/g' /home/conda/.profile && \
+    python -m pip install --no-cache-dir /volcsarvatory-monitoring
 
-ENTRYPOINT ["/hyp3-volcsarvatory-monitoring/src/hyp3_volcsarvatory_monitoring/etc/entrypoint.sh"]
+ENTRYPOINT ["/volcsarvatory-monitoring/src/volcsarvatory_monitoring/etc/entrypoint.sh"]
 CMD ["-h"]
