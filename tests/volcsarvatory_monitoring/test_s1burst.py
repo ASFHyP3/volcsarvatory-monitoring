@@ -4,8 +4,8 @@ import s1burst
 
 
 def test_product_qualifies_sentinel1_processing(asf_product_factory) -> None:
-    scene_name = 'S1_247728_IW1_20251003T154900_VV_657C-BURST'
-    full_burst_id = '116_247728_IW1'
+    scene_name = 'S1_125344_IW1_20251003T154900_VV_657C-BURST'
+    full_burst_id = '059_125344_IW1'
     polarization = 'VV'
     start_time = '2025-10-03T15:49:00+00:00'
     good_product = asf_product_factory(scene_name, full_burst_id, polarization, start_time)
