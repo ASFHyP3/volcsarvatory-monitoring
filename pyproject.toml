@@ -1,65 +1,18 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=80", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "volcsarvatory_monitoring"
-readme = "README.md"
-requires-python = ">=3.10"
-authors = [
-    {name="username_for_github_actions", email="email_for@github_actions.com"},
-]
-description = "Monitoring stack for InSAR deformation time series"
-license = {text = "BSD-3-Clause"}
-classifiers=[
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-]
-dependencies = [
-    "hyp3lib>=3,<4",
-    # TODO: insert Python dependencies as list here
-]
+requires-python = "==3.12.*"
 dynamic = ["version"]
-
-[project.optional-dependencies]
-develop = [
-    "mypy",
-    "ruff",
-    "pytest",
-    "pytest-console-scripts",
-    "pytest-cov",
-]
-
-[project.urls]
-Homepage = "https://github.com/ASFHyP3/volcsarvatory-monitoring"
-Documentation = "https://hyp3-docs.asf.alaska.edu"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-script_launch_mode = "subprocess"
-
-[tool.setuptools]
-include-package-data = true
-zip-safe = false
-
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [tool.setuptools_scm]
 
-# Please keep the following ruff options up-to-date with https://github.com/ASFHyP3/actions/#reusable-ruffyml
 [tool.ruff]
 line-length = 120
 # The directories to consider when resolving first- vs. third-party imports.
 # See: https://docs.astral.sh/ruff/settings/#src
-src = ["src", "tests"]
+src = ["**/src", "tests"]
 
 [tool.ruff.format]
 indent-style = "space"
@@ -87,9 +40,8 @@ suppress-dummy-args = true
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*" = ["D1", "ANN"]
 
-# Please keep the following mypy options up-to-date with https://github.com/ASFHyP3/actions/#reusable-mypyyml
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_unreachable = true
