@@ -102,7 +102,7 @@ def get_sbas_pairs(
         tbaseline = 48
     if season is None or target is None:
         seasont, targett = get_season(dic)
-        if season is None: 
+        if season is None:
             start_sea = seasont[0].strftime('%m-%d')
             end_sea = seasont[1].strftime('%m-%d')
             season = (start_sea, end_sea)

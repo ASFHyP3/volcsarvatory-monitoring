@@ -37,7 +37,10 @@ def add_aoi(id: str, extent: list) -> gpd.GeoDataFrame:
     """
     ullon, lrlon, lrlat, ullat = extent
     poly = Polygon([(ullon, ullat, 0), (ullon, lrlat, 0), (lrlon, lrlat, 0), (lrlon, ullat, 0)])
-    new_aoi = gpd.GeoDataFrame({'name': [id], 'geometry': [poly], 'bbox': ','.join(str(item) for item in extent), 'mb_ids': ['']}, crs='EPSG:4326')
+    new_aoi = gpd.GeoDataFrame(
+        {'name': [id], 'geometry': [poly], 'bbox': ','.join(str(item) for item in extent), 'mb_ids': ['']},
+        crs='EPSG:4326',
+    )
     if Path(f'{PARQUET_FILE}').exists():
         aoi_gdf = gpd.read_parquet(f'{PARQUET_FILE}')
         if len(aoi_gdf[aoi_gdf['name'] == id]) > 0:
