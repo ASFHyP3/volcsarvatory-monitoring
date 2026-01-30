@@ -1,8 +1,4 @@
 from copy import deepcopy
-from unittest.mock import patch
-
-import pandas as pd
-import pytest
 
 import s1burst
 

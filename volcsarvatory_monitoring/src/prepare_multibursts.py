@@ -34,7 +34,7 @@ def get_multibursts(burst_ids: list[str]) -> list[asf.MultiBurst]:
         multibursts: List of Multiburst objects associated with the burst IDs.
     """
     burst_ids = list(set(sorted(burst_ids)))
-    path_dict = dict()
+    path_dict: dict[str, list] = dict()
     for bid in burst_ids:
         path = bid[0:3]
         if path not in path_dict.keys():
@@ -58,7 +58,7 @@ def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
     Returns:
         multibursts: List of Multiburst objects associated with the burst IDs.
     """
-    multiburst_dict = dict()
+    multiburst_dict: dict[str, tuple] = dict()
     for bid in burst_ids:
         id = bid[0:-4]
         swath = bid[-3::]
@@ -73,7 +73,7 @@ def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
     except InvalidMultiBurstCountError:
         cont = 0
         multiburst_dicts = []
-        multiburst_set = dict()
+        multiburst_set: dict[str, tuple] = dict()
         for bid in sorted(multiburst_dict.keys()):
             if (cont + len(multiburst_dict[bid])) > 30:
                 multiburst_dicts.append(multiburst_set)
@@ -136,7 +136,7 @@ def split_count(multiburst_dict: dict) -> list[dict]:
     """
     cont = 0
     multiburst_dicts = []
-    multiburst_set = dict()
+    multiburst_set: dict[str, tuple] = dict()
     for bid in sorted(multiburst_dict.keys()):
         if (cont + len(multiburst_dict[bid])) > 30:
             multiburst_dicts.append(multiburst_set)
@@ -198,7 +198,7 @@ def split_vertical_multiburst(multiburst_dict: dict) -> list[dict]:
     return new_sets
 
 
-def fill_holes(multiburst_dict: dict) -> list[dict]:
+def fill_holes(multiburst_dict: dict) -> dict:
     """Fills a multiburst set when a hole is found in the set.
 
     Args:
@@ -328,7 +328,7 @@ def split_horizontal_multiburst(multiburst_dict: dict) -> list[dict]:
         return [iw1, iw2, iw3]
     elif split12:
         iw1 = dict()
-        rest = dict()
+        rest: dict[str, tuple] = dict()
         for bid in multiburst_dict.keys():
             swaths = multiburst_dict[bid]
             if 'IW1' in swaths:

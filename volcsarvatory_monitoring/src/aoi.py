@@ -17,8 +17,6 @@ land_50m = cfeature.NaturalEarthFeature('physical', 'land', '10m')
 land_polygons_cartopy = list(land_50m.geometries())
 land_gdf = gpd.GeoDataFrame(crs='epsg:4326', geometry=land_polygons_cartopy)
 
-s1_gdf = None
-
 
 def get_aoi() -> gpd.GeoDataFrame:
     """Reads the parquet file with the areas of interest."""
@@ -39,8 +37,7 @@ def add_aoi(id: str, extent: list) -> gpd.GeoDataFrame:
     """
     ullon, lrlon, lrlat, ullat = extent
     poly = Polygon([(ullon, ullat, 0), (ullon, lrlat, 0), (lrlon, lrlat, 0), (lrlon, ullat, 0)])
-    new_aoi = {'name': [id], 'geometry': [poly], 'bbox': ','.join(str(item) for item in extent), 'mb_ids': ['']}
-    new_aoi = gpd.GeoDataFrame(new_aoi, crs='EPSG:4326')
+    new_aoi = gpd.GeoDataFrame({'name': [id], 'geometry': [poly], 'bbox': ','.join(str(item) for item in extent), 'mb_ids': ['']}, crs='EPSG:4326')
     if Path(f'{PARQUET_FILE}').exists():
         aoi_gdf = gpd.read_parquet(f'{PARQUET_FILE}')
         if len(aoi_gdf[aoi_gdf['name'] == id]) > 0:
@@ -49,7 +46,7 @@ def add_aoi(id: str, extent: list) -> gpd.GeoDataFrame:
             else:
                 warnings.warn('An AOI with the same ID exists in the dataframe. Replacing...', UserWarning)
                 aoi_gdf = aoi_gdf[aoi_gdf['name'] != id]
-        aoi_gdf = pd.concat([aoi_gdf, new_aoi], ignore_index=True)
+        aoi_gdf = gpd.GeoDataFrame(pd.concat([aoi_gdf, new_aoi], ignore_index=True))
     else:
         aoi_gdf = new_aoi
     intersection = gpd.overlay(aoi_gdf, land_gdf, how='intersection')
@@ -63,15 +60,6 @@ def update_aoi(gdf: gpd.GeoDataFrame) -> None:
     gdf.to_parquet(f'{PARQUET_FILE}')
 
 
-def load_s1_gdf() -> None:
-    """Loads a parquet file with the burst ids and the extents."""
-    s3_url = 's3://its-live-data/autorift_parameters/v001/mission_frames_all.parquet'
-    fs = fsspec.filesystem('s3', anon=True)
-    gdf = gpd.read_parquet(s3_url, filesystem=fs)
-    global s1_gdf
-    s1_gdf = gdf[(gdf['mission'] == 'S1')]
-
-
 def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dict:
     """Get the burst ids that intersect the area of interest.
 
@@ -82,7 +70,11 @@ def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dic
     Returns:
         result: Dictionary where the keys are the burst ids and the area of interests overlapping.
     """
-    load_s1_gdf()
+    s3_url = 's3://its-live-data/autorift_parameters/v001/mission_frames_all.parquet'
+    fs = fsspec.filesystem('s3', anon=True)
+    s1_gdf = gpd.read_parquet(s3_url, filesystem=fs)
+    s1_gdf = s1_gdf[(s1_gdf['mission'] == 'S1')]
+
     if aoi_file is None:
         aoi_file = f'{PARQUET_FILE}'
     aoi_gdf = gpd.read_parquet(aoi_file)

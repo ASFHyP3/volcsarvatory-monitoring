@@ -23,7 +23,7 @@ def get_coherence(multiburst_dict: dict, num: int = 1) -> dict:
         coherence: Dictionary where the keys are the number of days between the pairs and the
                    elements are dictionaries where the keys are the reference dates.
     """
-    coherence = dict()
+    coherence: dict[int, dict] = dict()
     burst_ids = []
     for bid in multiburst_dict.keys():
         for swath in multiburst_dict[bid]:

@@ -37,7 +37,7 @@ def first_date_multiburst(dic: dict) -> str:
     return first_date_burst(burst_id)
 
 
-def get_season(dic: dict) -> tuple[tuple[str], str]:
+def get_season(dic: dict) -> tuple[tuple[datetime, datetime], datetime]:
     """Calculates the optimal season for asf_search using the expected coherence.
 
     Args:
@@ -102,10 +102,9 @@ def get_sbas_pairs(
         tbaseline = 48
     if season is None or target is None:
         seasont, targett = get_season(dic)
-        if season is None:
-            start_sea, end_sea = seasont
-            start_sea = start_sea.strftime('%m-%d')
-            end_sea = end_sea.strftime('%m-%d')
+        if season is None: 
+            start_sea = seasont[0].strftime('%m-%d')
+            end_sea = seasont[1].strftime('%m-%d')
             season = (start_sea, end_sea)
         if target is None:
             target = targett.strftime('%m-%d')

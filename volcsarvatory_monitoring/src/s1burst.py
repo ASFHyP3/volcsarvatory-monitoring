@@ -43,7 +43,7 @@ def create_aux_jsons() -> None:
     update_burst_json()
 
 
-def update_aoi_multibursts(aois: dict) -> tuple[gpd.GeoDataFrame, list]:
+def update_aoi_multibursts(aois: dict) -> tuple[gpd.GeoDataFrame, dict]:
     """Updates geoparquet for the AOIs and finds multiburst sets.
 
     Args:
@@ -54,7 +54,7 @@ def update_aoi_multibursts(aois: dict) -> tuple[gpd.GeoDataFrame, list]:
         mb_ids: multiburst ids for the multiburst sets.
     """
     aoi_ids = [key for key in aois]
-    mb_dics = dict()
+    mb_dics: dict[str, dict] = dict()
     for id in aoi_ids:
         aoi_gdf = aoi.add_aoi(id, extent=aois[id]['AOI'])
         mb_dic = get_multibursts(aois, id)
@@ -79,7 +79,7 @@ def get_multibursts(aois: dict, id: str) -> dict:
     burst_dict = aoi.get_burst_ids(aoi_id=id)
     burst_ids = [bid for bid in burst_dict.keys()]
     multibursts = pm.get_multibursts(burst_ids)
-    mb_dic = dict()
+    mb_dic: dict[str, dict] = dict()
     resolution = aois[id]['resolution']
     for multiburst in multibursts:
         dic = multiburst.multiburst_dict
@@ -116,7 +116,7 @@ def list_pairs_s3(mb_id: str) -> list[str]:
     return pairs
 
 
-def get_mbid(dic: dict, resolution: str) -> str:
+def get_mbid(dic: dict, resolution: str | None) -> str:
     """Finds the name for a multiburst set and given resolution.
 
     Args:
@@ -281,7 +281,8 @@ def update_burst_json() -> None:
 def product_qualifies_for_sentinel1_processing(product: ASFProduct, log_level: int = logging.DEBUG) -> bool:
     """Check if a Sentinel-1 Burst product qualifies for processing."""
     burst_id = product.properties['burst']['fullBurstID']
-    if burst_id not in SENTINEL1_BURSTS_TO_PROCESS:
+    bursts = json.loads(SENTINEL1_BURSTS_TO_PROCESS.read_text())
+    if burst_id not in bursts:
         log.log(log_level, f'{burst_id} disqualifies for processing because it is not from a burst containing land-ice')
         return False
 
