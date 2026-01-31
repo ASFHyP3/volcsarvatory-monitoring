@@ -1,5 +1,5 @@
-name: Deploy ITS_LIVE Monitoring
-description: Deploy the ITS_LIVE Monitoring system
+name: Deploy VOLCSARVATORY Monitoring
+description: Deploy the VOLCSARVATORY Monitoring system
 
 inputs:
   STACK_NAME:
@@ -47,18 +47,3 @@ runs:
             EarthdataPassword=${{ inputs.EARTHDATA_PASSWORD }} \
             PublishBucket=${{ inputs.PUBLISH_BUCKET }} \
             EcrImageUri=${{ inputs.ECR_IMAGE_URI }}
-
-        export CF_TEMPLATE_BUCKET=${{ inputs.CF_TEMPLATE_BUCKET }}
-        export VOLCSARVATORY_MONITORING_QUEUE_ARN=$( \
-          aws cloudformation describe-stacks \
-          --query "Stacks[?StackName=='${{ inputs.STACK_NAME }}'][].Outputs[?OutputKey=='VolcsarvatoryMonitoringQueueArn'].OutputValue" \
-          --output text \
-        )
-
-        aws cloudformation deploy \
-            --template-file volcsarvatory_monitoring/cloudformation-subscribe-in-eu.yml \
-            --region=eu-west-1 \
-            --stack-name=${{ inputs.STACK_NAME }} \
-            --s3-bucket=${CF_TEMPLATE_BUCKET/us-west-2/eu-west-1} \
-            --parameter-overrides \
-              VolcsarvatoryMonitoringQueueArn=${VOLCSARVATORY_MONITORING_QUEUE_ARN}

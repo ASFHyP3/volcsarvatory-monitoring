@@ -1,9 +1,7 @@
 MAKEFLAGS+=--always-make
 
-export PYTHONPATH = ${PWD}/volcsarvatory_monitoring/src:${PWD}/status-messages/src
-
 ECR_REGISTRY ?= 507737351839.dkr.ecr.us-west-2.amazonaws.com
-ECR_REPOSITORY ?= asfhyp3/volcsarvatory
+ECR_REPOSITORY ?= asfhyp3/volcsarvatory-monitoring
 PLATFORM ?= linux/amd64
 BUILDX_OUTPUT_TYPE ?= docker
 
