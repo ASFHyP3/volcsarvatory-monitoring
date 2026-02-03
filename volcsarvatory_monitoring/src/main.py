@@ -4,7 +4,7 @@ import json
 import logging
 import os
 
-from s1burst import create_aux_jsons, submit_pairs_burst
+from s1burst import create_aux_jsons, initial_run, submit_pairs_burst
 
 
 log = logging.getLogger('its_live_monitoring')
@@ -55,7 +55,7 @@ def lambda_handler(event: dict, context: object) -> dict:
 
 def main() -> None:
     """HyP3 entrypoint for volcsarvatory_monitoring."""
-    create_aux_jsons()
+    initial_run()
 
 
 if __name__ == '__main__':
