@@ -71,18 +71,7 @@ def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
         multiburst = get_multiburst(multiburst_dict)
         return [multiburst]
     except InvalidMultiBurstCountError:
-        cont = 0
-        multiburst_dicts = []
-        multiburst_set: dict[str, tuple] = dict()
-        for bid in sorted(multiburst_dict.keys()):
-            if (cont + len(multiburst_dict[bid])) > 30:
-                multiburst_dicts.append(multiburst_set)
-                multiburst_set = dict()
-                cont = 0
-            multiburst_set[bid] = multiburst_dict[bid]
-            cont += len(multiburst_dict[bid])
-        if cont > 0:
-            multiburst_dicts.append(multiburst_set)
+        multiburst_dicts = split_count(multiburst_dict)
     except InvalidMultiBurstTopologyError:
         multiburst_dicts = [multiburst_dict]
     multibursts = []
@@ -222,8 +211,8 @@ def fill_holes(multiburst_dict: dict) -> dict:
                     next = int(ids[i + 1].split('_')[1])
                     if not current == next - 1:
                         for j in range(current + 1, next):
-                            multiburst_dict[id[0:4] + str(j)] = tuple(
-                                sorted(multiburst_dict[id[0:4] + str(j)] + (swath,))
+                            multiburst_dict[id[0:4] + str(j).zfill(6)] = tuple(
+                                sorted(multiburst_dict[id[0:4] + str(j).zfill(6)] + (swath,))
                             )
     return multiburst_dict
 
@@ -235,8 +224,8 @@ def get_ranges(multiburst_dict: dict) -> tuple[dict, dict]:
         multiburst_dict: Dictionary where the keys are burst IDs and the elements are the swaths.
 
     Returns:
-        ranges: Tuple with the initial and final burst.
-        ids: List of burst IDs in the multiburst set.
+        ranges: Dictionary with tuple with the initial and final burst.
+        ids: Dictionary with list of burst IDs in the multiburst set.
     """
     ranges = dict()
     ids = dict()

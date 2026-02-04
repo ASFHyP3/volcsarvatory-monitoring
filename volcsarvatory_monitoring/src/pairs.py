@@ -1,15 +1,19 @@
 """Module to prepare InSAR pairs for HyP3."""
 
-import json
 import os
 import random
-from pathlib import Path
+from copy import deepcopy
 
 import asf_search as asf
 import hyp3_sdk as sdk
 
 
-PROCESSING_JSON = Path(__file__).parent / 'data' / 'processing.json'
+MULTIBURST_JOB_TEMPLATE = {
+    'job_type': 'INSAR_ISCE_MULTI_BURST',
+    'job_parameters': {
+        'apply_water_mask': True,
+    },
+}
 
 
 def get_coherence(multiburst_dict: dict, num: int = 1) -> dict:
@@ -54,7 +58,6 @@ def prepare_multiburst_jobs(
     refs: list[str],
     secs: list[str],
     project_name: str,
-    hyp3: sdk.HyP3,
     looks: str | None = None,
     apply_water_mask: bool = True,
 ) -> list[dict]:
@@ -75,11 +78,19 @@ def prepare_multiburst_jobs(
     bursts = [ref[0:13] for ref in refs]
     ubursts = list(set(bursts))
     lenburst = int(len(refs) / len(ubursts))
+    if looks is None:
+        looks = '20x4'
 
     for i in range(lenburst):
+        prepared_job: dict = deepcopy(MULTIBURST_JOB_TEMPLATE)
         ref = [refs[i + j * lenburst] for j in range(len(ubursts))]
         sec = [secs[i + j * lenburst] for j in range(len(ubursts))]
-        insar_jobs.append(hyp3.prepare_insar_isce_multi_burst_job(ref, sec, name=project_name, apply_water_mask=True))
+        prepared_job['name'] = project_name
+        prepared_job['job_parameters']['reference'] = ref
+        prepared_job['job_parameters']['secondary'] = sec
+        prepared_job['job_parameters']['looks'] = looks
+        prepared_job['job_parameters']['apply_water_mask'] = apply_water_mask
+        insar_jobs.append(prepared_job)
 
     for job in insar_jobs:
         job['job_parameters']['publish_bucket'] = os.environ.get('PUBLISH_BUCKET')
@@ -97,27 +108,14 @@ def submit_jobs(insar_jobs: list[dict], hyp3: sdk.HyP3) -> list[dict]:
     Returns:
         jobs: List of submitted batches.
     """
-    if PROCESSING_JSON.exists():
-        processing = json.loads(PROCESSING_JSON.read_text())
-    else:
-        processing = []
     batches = int(len(insar_jobs) / 100) + 1
     jobs = []
-    newjobs = []
     for batch in range(batches):
         ini = batch * 100
         if batch == batches - 1:
             fin = batch * 100 + len(insar_jobs) % 100
         else:
             fin = (batch + 1) * 100
-        jobs_def = [job for job in insar_jobs[ini:fin] if job['name'] not in processing]
-        names_def = [job['name'] for job in jobs_def]
-        # hyp3.submit_prepared_jobs(jobs_def)
-        newjobs += names_def
-        jobs += jobs_def
-    processing += newjobs
-
-    with PROCESSING_JSON.open('w') as json_file:
-        json.dump(sorted(list(set(processing))), json_file)
+        jobs += hyp3.submit_prepared_jobs(insar_jobs[ini:fin])
 
     return jobs

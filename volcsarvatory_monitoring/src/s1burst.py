@@ -248,7 +248,7 @@ def submit_pairs(mb_ids: list[str]) -> list[dict]:
         resolution = mbs_dic[mb_id]['resolution']
         refs, secs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
 
-        insar_jobs += pairs.prepare_multiburst_jobs(refs, secs, mb_id, hyp3, looks=resolution, apply_water_mask=True)
+        insar_jobs += pairs.prepare_multiburst_jobs(refs, secs, mb_id, looks=resolution, apply_water_mask=True)
 
     jobs = pairs.submit_jobs(insar_jobs, hyp3)
     return jobs
