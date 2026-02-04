@@ -1,0 +1,20 @@
+import sbas
+
+
+def test_list_pair_dates() -> None:
+    refs = [
+        'S1_000001_IW1_00000000T000000_VV_0001-BURST',
+        'S1_000002_IW1_00000000T000000_VV_0001-BURST',
+        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
+        'S1_000002_IW1_00000001T000000_VV_0001-BURST',
+    ]
+    secs = [
+        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
+        'S1_000002_IW1_00000001T000000_VV_0001-BURST',
+        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
+        'S1_000002_IW1_00000003T000000_VV_0001-BURST',
+    ]
+
+    pairs = sbas.list_pair_dates(refs, secs)
+
+    assert pairs == ['00000000_00000001', '00000001_00000003']
