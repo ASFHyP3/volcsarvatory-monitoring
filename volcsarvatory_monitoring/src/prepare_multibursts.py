@@ -115,7 +115,7 @@ def get_multiburst(multiburst_dict: dict) -> asf.MultiBurst:
 
 
 def split_count(multiburst_dict: dict) -> list[dict]:
-    """Splits a multiburst set in case it is over 30 bursts.
+    """Split up a multiburst dict if it contains over 30 bursts.
 
     Args:
         multiburst_dict: Dictionary where the keys are burst IDs and the elements are the swaths.
