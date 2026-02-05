@@ -183,4 +183,4 @@ def list_pair_dates(refs: list[str], secs: list[str]) -> list:
         ref_date = refs[i].split('_')[3].split('T')[0]
         sec_date = secs[i].split('_')[3].split('T')[0]
         pairs.append(f'{ref_date}_{sec_date}')
-    return sorted(set(pairs))
+    return pairs

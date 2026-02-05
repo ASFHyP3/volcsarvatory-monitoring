@@ -95,6 +95,23 @@ def get_multibursts(aois: dict, id: str) -> dict:
     return mb_dic
 
 
+def list_s3_objects(prefix: str) -> list[str]:
+    """Lists files in the s3 bucket.
+
+    Args:
+        prefix: Prefix in the bucket.
+
+    Returns:
+        filepaths: List of filepaths.
+    """
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(os.environ.get('PUBLISH_BUCKET'))
+    objects = bucket.objects.filter(Prefix=prefix)
+    filepaths = [obj.key for obj in objects]
+
+    return filepaths
+
+
 def list_pairs_s3(mb_id: str) -> list[str]:
     """Lists pairs found in the s3 bucket.
 
@@ -104,13 +121,9 @@ def list_pairs_s3(mb_id: str) -> list[str]:
     Returns:
         pairs: List of strings with pair dates.
     """
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(os.environ.get('PUBLISH_BUCKET'))
-
-    # Use filter to apply a prefix; handles pagination automatically
     prefix = f'multiburst_products/{mb_id}'
-    objects = bucket.objects.filter(Prefix=prefix)
-    keys = [obj.key.split('IW')[1] for obj in objects]
+    keys = list_s3_objects(prefix)
+    keys = [key.split('IW')[1] for key in keys]
     pairs = ['_'.join(key.split('_')[1:3]) for key in keys]
 
     return pairs
@@ -168,7 +181,8 @@ def get_multibursts_ids(burst_id: str) -> list[str]:
     swath = burst_id.split('_')[-1]
     keys = [key for key in burst_dic.keys() if path in key]
 
-    mb_ids = [mb_id for mb_id in keys if swath in burst_dic[mb_id]['mb_set'][f'{path}_{frame}']]
+    mb_ids = [mb_id for mb_id in keys if f'{path}_{frame}' in burst_dic[mb_id]['mb_set'].keys()]
+    mb_ids = [mb_id for mb_id in mb_ids if swath in burst_dic[mb_id]['mb_set'][f'{path}_{frame}']]
     return mb_ids
 
 
@@ -222,20 +236,15 @@ def submit_pairs_burst(burst_id: str) -> list[dict]:
     return jobs
 
 
-def submit_pairs(mb_ids: list[str]) -> list[dict]:
+def prepare_pairs(mb_ids: list[str]) -> list[dict]:
     """Submit multiburst jobs for multiburst sets.
 
     Args:
         mb_ids: IDs for the multiburst sets.
 
     Returns:
-        jobs: Submitted multiburst jobs.
+        jobs: Prepared multiburst jobs.
     """
-    hyp3 = sdk.HyP3(
-        os.environ.get('HYP3_API'),
-        username=os.environ.get('EARTHDATA_USERNAME'),
-        password=os.environ.get('EARTHDATA_PASSWORD'),
-    )
     mbs_dic = json.loads(MULTIBURST_JSON.read_text())
 
     insar_jobs = []
@@ -250,7 +259,26 @@ def submit_pairs(mb_ids: list[str]) -> list[dict]:
 
         insar_jobs += pairs.prepare_multiburst_jobs(refs, secs, mb_id, looks=resolution, apply_water_mask=True)
 
+    return insar_jobs
+
+
+def submit_pairs(mb_ids: list[str]) -> list[dict]:
+    """Submit multiburst jobs for multiburst sets.
+
+    Args:
+        mb_ids: IDs for the multiburst sets.
+
+    Returns:
+        jobs: Submitted multiburst jobs.
+    """
+    hyp3 = sdk.HyP3(
+        os.environ.get('HYP3_API'),
+        username=os.environ.get('EARTHDATA_USERNAME'),
+        password=os.environ.get('EARTHDATA_PASSWORD'),
+    )
+    insar_jobs = prepare_pairs(mb_ids)
     jobs = pairs.submit_jobs(insar_jobs, hyp3)
+
     return jobs
 
 
@@ -265,14 +293,27 @@ def initial_run() -> list[dict]:
     return jobs
 
 
+def list_bursts(mb_dic: dict) -> list[str]:
+    """Lists the bursts in a multiburst set.
+
+    Args:
+        mb_dic: Dictionary with the multiburst set.
+
+    Returns:
+        burst_ids: List of burst ids.
+    """
+    burst_ids = []
+    for mb_id in mb_dic.keys():
+        for key in mb_dic[mb_id]['mb_set']:
+            for swath in mb_dic[mb_id]['mb_set'][key]:
+                burst_ids.append(f'{key}_{swath}')
+    return burst_ids
+
+
 def update_burst_json() -> None:
     """Updates the json that contains burst id to be processed."""
-    burst_dic = json.loads(MULTIBURST_JSON.read_text())
-    burst_ids = []
-    for mb_id in burst_dic.keys():
-        for key in burst_dic[mb_id]['mb_set']:
-            for swath in burst_dic[mb_id]['mb_set'][key]:
-                burst_ids.append(f'{key}_{swath}')
+    mb_dic = json.loads(MULTIBURST_JSON.read_text())
+    burst_ids = list_bursts(mb_dic)
 
     with SENTINEL1_BURSTS_TO_PROCESS.open('w') as json_file:
         json.dump(burst_ids, json_file)

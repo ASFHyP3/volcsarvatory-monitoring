@@ -63,6 +63,20 @@ def update_aoi(gdf: gpd.GeoDataFrame) -> None:
     gdf.to_parquet(f'{PARQUET_FILE}')
 
 
+def load_s1_parquet() -> gpd.GeoDataFrame:
+    """Loads parquet file with Sentinel-1 bursts.
+
+    Returns:
+        s1_gdf: Geopandas dataframe with Sentinel-1 bursts.
+    """
+    s3_url = 's3://its-live-data/autorift_parameters/v001/mission_frames_all.parquet'
+    fs = fsspec.filesystem('s3', anon=True)
+    s1_gdf = gpd.read_parquet(s3_url, filesystem=fs)
+    s1_gdf = s1_gdf[(s1_gdf['mission'] == 'S1')]
+
+    return s1_gdf
+
+
 def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dict:
     """Get the burst ids that intersect the area of interest.
 
@@ -73,10 +87,7 @@ def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dic
     Returns:
         result: Dictionary where the keys are the burst ids and the area of interests overlapping.
     """
-    s3_url = 's3://its-live-data/autorift_parameters/v001/mission_frames_all.parquet'
-    fs = fsspec.filesystem('s3', anon=True)
-    s1_gdf = gpd.read_parquet(s3_url, filesystem=fs)
-    s1_gdf = s1_gdf[(s1_gdf['mission'] == 'S1')]
+    s1_gdf = load_s1_parquet()
 
     if aoi_file is None:
         aoi_file = f'{PARQUET_FILE}'
