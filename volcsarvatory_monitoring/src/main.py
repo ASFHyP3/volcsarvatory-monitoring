@@ -15,7 +15,7 @@ def product_id_from_message(message: dict) -> str:
     """Return a scene product ID from an SQS message.
 
     Args:
-        message: SQS message as received from supported satellite missions (Landsat, Sentinel-1, and Sentinel-2)
+        message: SQS message as received from supported satellite missions (Sentinel-1).
 
     Returns:
         product_id: the product ID of a scene
