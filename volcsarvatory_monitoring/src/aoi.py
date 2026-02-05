@@ -107,16 +107,11 @@ def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dic
     result = dict()
     for bid in bursts_gdf['id'].unique():
         asf_res = asf.search(fullBurstID=bid)
-        cond = False
-        if len(asf_res) > 1:
-            cond = True
-        elif len(asf_res) == 1:
-            if asf_res[0].properties['stopTime'] is not None:
-                cond = True
-        if cond:
+        if len(asf_res) > 1 or (len(asf_res) == 1 and asf_res[0].properties['stopTime'] is not None):
+            burst_gdf_unique = bursts_gdf[bursts_gdf['id'] == bid]['name'].unique()
             if aoi_id is None:
-                result[bid] = bursts_gdf[bursts_gdf['id'] == bid]['name'].unique()
+                result[bid] = burst_gdf_unique
             else:
-                if aoi_id in bursts_gdf[bursts_gdf['id'] == bid]['name'].unique():
-                    result[bid] = bursts_gdf[bursts_gdf['id'] == bid]['name'].unique()
+                if aoi_id in burst_gdf_unique:
+                    result[bid] = burst_gdf_unique
     return result
