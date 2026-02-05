@@ -1,4 +1,4 @@
-asf_search @ git+https://github.com/mfangaritav/Discovery-asf_search.git#egg=asf_search[sbas]
+asf_search[sbas] @ git+https://github.com/mfangaritav/Discovery-asf_search.git
 cartopy==0.25.0
 geopandas==1.1.1
 hyp3-sdk==7.7.5
