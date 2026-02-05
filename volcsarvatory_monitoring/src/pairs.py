@@ -42,15 +42,17 @@ def get_coherence(multiburst_dict: dict, num: int = 1) -> dict:
         for i, ref in enumerate(prods[0:-1]):
             for sec in prods[i + 1 : :]:
                 pair = asf.Pair(ref, sec)
-                if pair.temporal_baseline.days in [6, 12, 18, 24, 36, 48]:
+                temporal_baseline = pair.temporal_baseline.days
+                if temporal_baseline in [6, 12, 18, 24, 36, 48]:
                     ref_date = ref.properties['stopTime'].split('T')[0]
-                    if pair.temporal_baseline.days not in coherence.keys():
-                        coherence[pair.temporal_baseline.days] = dict()
+                    mean_coherence = pair.estimate_s1_mean_coherence() / num
+                    if temporal_baseline not in coherence.keys():
+                        coherence[temporal_baseline] = dict()
                     else:
-                        if ref_date in coherence[pair.temporal_baseline.days].keys():
-                            coherence[pair.temporal_baseline.days][ref_date] += pair.estimate_s1_mean_coherence() / num
+                        if ref_date in coherence[temporal_baseline].keys():
+                            coherence[temporal_baseline][ref_date] += mean_coherence
                         else:
-                            coherence[pair.temporal_baseline.days][ref_date] = pair.estimate_s1_mean_coherence() / num
+                            coherence[temporal_baseline][ref_date] = mean_coherence
     return coherence
 
 
