@@ -284,7 +284,7 @@ def complete_sides(multiburst_dict: dict) -> list[dict]:
 
 
 def split_horizontal_multiburst(multiburst_dict: dict) -> list[dict]:
-    """Splits a multiburst set horizontally in case the difference between adjacent ranges swaths is more than 1.
+    """Split a multiburst set horizontally if adjacent range swaths differ by more than 1.
 
     Args:
         multiburst_dict: Dictionary where the keys are burst IDs and the elements are the swaths.
