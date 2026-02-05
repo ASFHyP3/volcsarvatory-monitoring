@@ -1,3 +1,10 @@
+import json
+from pathlib import Path
+
+import pytest
+import responses
+from asf_search.exceptions import InvalidMultiBurstCountError, InvalidMultiBurstTopologyError
+
 import prepare_multibursts as pm
 
 
@@ -9,7 +16,17 @@ def test_get_julian_season() -> None:
     assert end_day == 365
 
 
+@responses.activate
 def test_get_multibursts() -> None:
+    mock_url = 'https://cmr.earthdata.nasa.gov/search/granules.umm_json'
+
+    responses.add(
+        responses.GET,
+        mock_url,
+        body=json.dumps(json.loads((Path(__file__).parent / 'data' / 'multiburst_valid.json').read_text())),
+        status=200,
+        content_type='application/json',
+    )
     burst_ids = ['110_234430_IW3', '037_077633_IW1', '037_077634_IW1']
     mbs = pm.get_multibursts(burst_ids)
     keys = [key for mb in mbs for key in mb.multiburst_dict.keys()]
@@ -153,3 +170,35 @@ def test_split_multiburst():
     assert mbs[0]['000_000002'] == ('IW1', 'IW2', 'IW3')
     assert mbs[0]['000_000003'] == ('IW1', 'IW2', 'IW3')
     assert mbs[0]['000_000005'] == ('IW2', 'IW3')
+
+
+@responses.activate
+def test_get_multiburst():
+    mock_url = 'https://cmr.earthdata.nasa.gov/search/granules.umm_json'
+
+    # 1. Register the mock response
+    responses.add(
+        responses.GET,
+        mock_url,
+        body=json.dumps(json.loads((Path(__file__).parent / 'data' / 'multiburst_valid.json').read_text())),
+        status=200,
+        content_type='application/json',
+    )
+    mb_dic: dict[str, tuple] = {f'000_{str(i).zfill(6)}': ('IW1', 'IW2', 'IW3') for i in range(11)}
+
+    with pytest.raises(InvalidMultiBurstCountError):
+        pm.get_multiburst(mb_dic)
+
+    mb_dic = {'000_000002': ('IW1', 'IW2', 'IW3'), '000_000003': ('IW1', 'IW3'), '000_000004': ('IW1', 'IW2', 'IW3')}
+
+    with pytest.raises(InvalidMultiBurstTopologyError):
+        pm.get_multiburst(mb_dic)
+
+    mb_dic = {
+        '000_000002': ('IW1', 'IW2', 'IW3'),
+        '000_000003': ('IW1', 'IW2', 'IW3'),
+        '000_000004': ('IW1', 'IW2', 'IW3'),
+    }
+    mb = pm.get_multiburst(mb_dic)
+
+    assert mb.multiburst_dict == mb_dic
