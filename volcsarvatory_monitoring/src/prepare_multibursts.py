@@ -188,7 +188,7 @@ def split_vertical_multiburst(multiburst_dict: dict) -> list[dict]:
 
 
 def fill_holes(multiburst_dict: dict) -> dict:
-    """Fills a multiburst set when a hole is found in the set.
+    """Fills any holes in a multiburst set.
 
     Args:
         multiburst_dict: Dictionary where the keys are burst IDs and the elements are the swaths.
