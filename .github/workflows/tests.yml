@@ -1,0 +1,30 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.12
+
+      - run: make install
+
+      - run: make tests
+        env:
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_LOGIN_USER }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_LOGIN_PASSWORD }}

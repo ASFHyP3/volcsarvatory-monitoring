@@ -1,17 +1,6 @@
 name: volcsarvatory-monitoring
-channels:
-  - conda-forge
-  - nodefaults
 dependencies:
-  - python>=3.10
+  - python=3.12
   - pip
-  # For packaging, and testing
-  - setuptools_scm
-  - pytest
-  - pytest-console-scripts
-  - pytest-cov
-  # For running
-  - hyp3lib>=3,<4
-  # TODO: insert conda-forge dependencies as list here
   - pip:
-      - -r requirements-static.txt
+      - -r requirements-all.txt
