@@ -4,6 +4,7 @@ import warnings
 from pathlib import Path
 
 import asf_search as asf
+import cartopy
 import cartopy.feature as cfeature
 import fsspec
 import geopandas as gpd
@@ -13,6 +14,8 @@ from shapely.geometry import Polygon
 
 PARQUET_FILE = Path(__file__).parent / 'data' / 'aoi_vol.parquet'
 
+cartopy.config['data_dir'] = '/tmp'
+cartopy.config['pre_existing_data_dir'] = '/tmp'
 land_50m = cfeature.NaturalEarthFeature('physical', 'land', '10m')
 land_polygons_cartopy = list(land_50m.geometries())
 land_gdf = gpd.GeoDataFrame(crs='epsg:4326', geometry=land_polygons_cartopy)
