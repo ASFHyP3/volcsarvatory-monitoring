@@ -4,11 +4,30 @@ import json
 import logging
 import os
 
+import asf_search as asf
+
 from s1burst import create_aux_jsons, submit_pairs_burst
 
 
 log = logging.getLogger('its_live_monitoring')
 log.setLevel(os.environ.get('LOGGING_LEVEL', 'INFO'))
+
+
+def get_burst_id(scene: str) -> str:
+    """Return the burst ID from a scene name.
+
+    Args:
+        scene: Scene burst name.
+
+    Returns:
+        burst_id: the burst ID of a scene
+    """
+    results = asf.granule_search(scene)
+
+    if len(results) == 0:
+        raise ValueError(f'Sentinel-1 Burst {scene} could not be found')
+
+    return results[0].properties['burst']['fullBurstID']
 
 
 def product_id_from_message(message: dict) -> str:
@@ -46,7 +65,8 @@ def lambda_handler(event: dict, context: object) -> dict:
             body = json.loads(record['body'])
             message = json.loads(body['Message'])
             product_id = product_id_from_message(message)
-            submit_pairs_burst(product_id)
+            burst_id = get_burst_id(product_id)
+            submit_pairs_burst(burst_id)
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})

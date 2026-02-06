@@ -277,9 +277,27 @@ def submit_pairs(mb_ids: list[str]) -> list[dict]:
         password=os.environ.get('EARTHDATA_PASSWORD'),
     )
     insar_jobs = prepare_pairs(mb_ids)
+    job_params = list_pending_running_jobs_parameters(hyp3)
+    insar_jobs = [job for job in insar_jobs if job['job_parameters'] not in job_params]
     jobs = pairs.submit_jobs(insar_jobs, hyp3)
 
     return jobs
+
+
+def list_pending_running_jobs_parameters(hyp3: sdk.HyP3) -> list[dict]:
+    """List jobs that are pending or running.
+
+    Args:
+        hyp3: Instance of HyP3 where the user has been logged in.
+
+    Returns:
+        jobs_params: List with the parameters of the jobs submitted.
+    """
+    jobs = hyp3.find_jobs(status_code='PENDING')
+    jobs += hyp3.find_jobs(status_code='RUNNING')
+    jobs_params = [job.to_dict()['job_parameters'] for job in jobs]
+
+    return jobs_params
 
 
 def initial_run() -> list[dict]:
