@@ -302,8 +302,6 @@ def list_pending_running_jobs_parameters(hyp3: sdk.HyP3) -> list[dict]:
 
 def initial_run() -> list[dict]:
     """Initial run for the deployment."""
-    create_aux_jsons()
-
     burst_dic = json.loads(MULTIBURST_JSON.read_text())
     mb_ids = [key for key in burst_dic.keys()]
     jobs = submit_pairs(mb_ids)

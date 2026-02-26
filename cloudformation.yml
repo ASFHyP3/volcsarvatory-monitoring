@@ -2,6 +2,9 @@ Parameters:
   Sentinel1TopicArn:
     Type: String
 
+  AOITopicArn:
+    Type: String
+
   Hyp3Api:
     Type: String
 
@@ -64,6 +67,39 @@ Resources:
       Queues:
         - !Ref Queue
 
+  QueueAOI:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 28800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  QueuePolicyAOI:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt QueueAOI.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: [!Ref AOITopicArn]
+      Queues:
+        - !Ref QueueAOI
+
+  AOISubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AOITopicArn
+      Protocol: sqs
+      Endpoint: !GetAtt QueueAOI.Arn
+
   Sentinel1Subscription:
     Type: AWS::SNS::Subscription
     Properties:
@@ -74,6 +110,44 @@ Resources:
       FilterPolicy:
         granule_ur:
           - suffix: '-BURST'
+
+  LambdaAOI:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.lambda_aoi_handler
+      Code:
+        ImageUri: !Ref EcrImageUri
+      Role: !GetAtt LambdaRole.Arn
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          HYP3_API: !Ref Hyp3Api
+          JOBS_TABLE_NAME: !Ref Hyp3JobsTable
+          LOGGING_LEVEL: !Ref LambdaLoggingLevel
+          EARTHDATA_USERNAME: !Ref EarthdataUsername
+          EARTHDATA_PASSWORD: !Ref EarthdataPassword
+          PUBLISH_BUCKET: !Ref PublishBucket
+
+  LambdaAOIEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref LambdaAOI
+      BatchSize: 1
+      EventSourceArn: !GetAtt QueueAOI.Arn
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      ScalingConfig:
+        MaximumConcurrency: 100
+
+  LambdaAOILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaAOI}"
+      RetentionInDays: 90
 
   Lambda:
     Type: AWS::Lambda::Function

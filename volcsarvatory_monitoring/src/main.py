@@ -6,7 +6,7 @@ import os
 
 import asf_search as asf
 
-from s1burst import create_aux_jsons, submit_pairs_burst
+from s1burst import create_aux_jsons, initial_run, submit_pairs_burst
 
 
 log = logging.getLogger('its_live_monitoring')
@@ -67,6 +67,28 @@ def lambda_handler(event: dict, context: object) -> dict:
             product_id = product_id_from_message(message)
             burst_id = get_burst_id(product_id)
             submit_pairs_burst(burst_id)
+        except Exception:
+            log.exception(f'Could not process message {record["messageId"]}')
+            batch_item_failures.append({'itemIdentifier': record['messageId']})
+    return {'batchItemFailures': batch_item_failures}
+
+
+def lambda_aoi_handler(event: dict, context: object) -> dict:
+    """Landsat processing lambda function.
+
+    Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
+
+    Args:
+        event: The event dictionary that contains the parameters sent when this function is invoked.
+        context: The context in which is function is called.
+
+    Returns:
+        AWS SQS batchItemFailures JSON response including messages that failed to be processed
+    """
+    batch_item_failures = []
+    for record in event['Records']:
+        try:
+            initial_run()
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
