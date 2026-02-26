@@ -6,6 +6,8 @@ inputs:
     required: true
   CF_TEMPLATE_BUCKET:
     required: true
+  AOI_TOPIC_ARN:
+    required: true
   SENTINEL1_TOPIC_ARN:
     required: true
   HYP3_API:
@@ -40,6 +42,7 @@ runs:
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
             Sentinel1TopicArn=${{ inputs.SENTINEL1_TOPIC_ARN }} \
+            AOITopicArn=${{ inputs.AOI_TOPIC_ARN }} \
             Hyp3Api=${{ inputs.HYP3_API }} \
             Hyp3JobsTable=${{ inputs.HYP3_JOBS_TABLE }} \
             LambdaLoggingLevel=${{ inputs.LAMBDA_LOGGING_LEVEL }} \
