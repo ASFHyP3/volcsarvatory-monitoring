@@ -15,6 +15,8 @@ jobs:
     if: ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'develop' }}
     environment: ${{ contains(needs.call-version-info-workflow.outputs.version_tag, '.dev') && 'test' || 'prod' }}
     runs-on: ubuntu-latest
+    env:
+      AOI_TOPIC_ARN: ${{ vars.AOI_TOPIC_ARN }}
     steps:
       - uses: actions/checkout@v6
 
@@ -27,5 +29,5 @@ jobs:
       - run: |
           aws sns publish \
           --profile saml-pub \
-          --topic-arn ${{ vars.AOI_TOPIC_ARN }} \
+          --topic-arn $AOI_TOPIC_ARN \
           --message "New AOI"
