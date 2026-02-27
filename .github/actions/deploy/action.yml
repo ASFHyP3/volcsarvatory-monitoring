@@ -55,6 +55,5 @@ runs:
       shell: bash
       run: |
         aws sns publish \
-          --profile saml-pub \
           --topic-arn ${{ inputs.AOI_TOPIC_ARN }} \
           --message "New AOI"
