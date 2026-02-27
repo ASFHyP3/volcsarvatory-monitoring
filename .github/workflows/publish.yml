@@ -1,0 +1,31 @@
+name: Publish AOI
+description: Publish and SNS message to notify a new AOI
+
+on:
+  workflow_run:
+    workflows: ['Build image and deploy']
+    types: [completed]
+    branches:
+      - main
+      - develop
+jobs:
+  publish_aoi:
+    permissions:
+      contents: read
+    if: ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'develop' }}
+    environment: ${{ contains(needs.call-version-info-workflow.outputs.version_tag, '.dev') && 'test' || 'prod' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - run: |
+          aws sns publish \
+          --profile saml-pub \
+          --topic-arn ${{ vars.AOI_TOPIC_ARN }} \
+          --message "New AOI"
