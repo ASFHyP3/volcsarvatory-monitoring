@@ -10,6 +10,8 @@ on:
       - develop
 jobs:
   publish_aoi:
+    permissions:
+      contents: read
     if: ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'develop' }}
     environment: ${{ contains(needs.call-version-info-workflow.outputs.version_tag, '.dev') && 'test' || 'prod' }}
     runs-on: ubuntu-latest
