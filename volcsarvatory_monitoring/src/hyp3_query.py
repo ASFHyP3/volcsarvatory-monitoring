@@ -5,11 +5,18 @@ import os
 import hyp3_sdk as sdk
 
 
-hyp3 = sdk.HyP3(
-    os.environ.get('HYP3_API'),
-    username=os.environ.get('EARTHDATA_USERNAME'),
-    password=os.environ.get('EARTHDATA_PASSWORD'),
-)
+def get_hyp3_instance() -> sdk.HyP3:
+    """Get an instance for the HyP3 sdk.
+
+    Returns:
+        hyp3: HyP3 sdk instance.
+    """
+    hyp3 = sdk.HyP3(
+        os.environ.get('HYP3_API'),
+        username=os.environ.get('EARTHDATA_USERNAME'),
+        password=os.environ.get('EARTHDATA_PASSWORD'),
+    )
+    return hyp3
 
 
 def submit_jobs(jobs: list[dict]) -> list[dict]:
@@ -21,6 +28,7 @@ def submit_jobs(jobs: list[dict]) -> list[dict]:
     Returns:
         jobs: Filtered and submitted jobs.
     """
+    hyp3 = get_hyp3_instance()
     job_params = list_pending_running_jobs_parameters(jobs[0]['job_type'])
     jobs = [job for job in jobs if job['job_parameters'] not in job_params]
     jobs = submit_split_jobs(jobs)
@@ -32,12 +40,12 @@ def list_pending_running_jobs_parameters(job_type: str) -> list[dict]:
     """List jobs that are pending or running.
 
     Args:
-        hyp3: Instance of HyP3 where the user has been logged in.
         job_type: Name of the job type to submit.
 
     Returns:
         jobs_params: List with the parameters of the jobs submitted.
     """
+    hyp3 = get_hyp3_instance()
     jobs = hyp3.find_jobs(job_type=job_type, status_code='PENDING')
     jobs += hyp3.find_jobs(job_type=job_type, status_code='RUNNING')
     jobs_params = [job.to_dict()['job_parameters'] for job in jobs]
@@ -51,6 +59,7 @@ def wait_jobs(jobs: list[dict]) -> None:
     Args:
         jobs: List of submitted jobs.
     """
+    hyp3 = get_hyp3_instance()
     for job in jobs:
         hyp3.watch(job)
 
@@ -60,11 +69,11 @@ def submit_split_jobs(jobs: list[dict]) -> list[dict]:
 
     Args:
         jobs: Prepared multiburst jobs.
-        hyp3: Instance of HyP3 where the user has been logged in.
 
     Returns:
         jobs: List of submitted batches.
     """
+    hyp3 = get_hyp3_instance()
     batches = int(len(jobs) / 100) + 1
     sub_jobs = []
     for batch in range(batches):
