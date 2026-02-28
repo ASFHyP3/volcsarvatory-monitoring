@@ -28,7 +28,6 @@ def submit_jobs(jobs: list[dict]) -> list[dict]:
     Returns:
         jobs: Filtered and submitted jobs.
     """
-    hyp3 = get_hyp3_instance()
     job_params = list_pending_running_jobs_parameters(jobs[0]['job_type'])
     jobs = [job for job in jobs if job['job_parameters'] not in job_params]
     jobs = submit_split_jobs(jobs)
