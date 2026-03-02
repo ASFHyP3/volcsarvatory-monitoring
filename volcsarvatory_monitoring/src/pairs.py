@@ -5,7 +5,6 @@ import random
 from copy import deepcopy
 
 import asf_search as asf
-import hyp3_sdk as sdk
 
 
 MULTIBURST_JOB_TEMPLATE = {
@@ -98,26 +97,3 @@ def prepare_multiburst_jobs(
         job['job_parameters']['publish_bucket'] = os.environ.get('PUBLISH_BUCKET')
 
     return insar_jobs
-
-
-def submit_jobs(insar_jobs: list[dict], hyp3: sdk.HyP3) -> list[dict]:
-    """Submits prepared multiburst jobs.
-
-    Args:
-        insar_jobs: Prepared multiburst jobs.
-        hyp3: Instance of HyP3 where the user has been logged in.
-
-    Returns:
-        jobs: List of submitted batches.
-    """
-    batches = int(len(insar_jobs) / 100) + 1
-    jobs = []
-    for batch in range(batches):
-        ini = batch * 100
-        if batch == batches - 1:
-            fin = batch * 100 + len(insar_jobs) % 100
-        else:
-            fin = (batch + 1) * 100
-        jobs += hyp3.submit_prepared_jobs(insar_jobs[ini:fin])
-
-    return jobs

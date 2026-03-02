@@ -8,7 +8,6 @@ from pathlib import Path
 import asf_search as asf
 import boto3
 import geopandas as gpd
-import hyp3_sdk as sdk
 import ruamel.yaml as yaml
 from asf_search.ASFProduct import ASFProduct
 
@@ -16,6 +15,7 @@ import aoi
 import pairs
 import prepare_multibursts as pm
 import sbas
+from hyp3_query import submit_jobs
 
 
 log = logging.getLogger('volcsarvatory_monitoring')
@@ -231,7 +231,8 @@ def submit_pairs_burst(burst_id: str) -> list[dict]:
         jobs: Submitted multiburst jobs.
     """
     mb_ids = get_multibursts_ids(burst_id)
-    jobs = submit_pairs(mb_ids)
+    jobs = prepare_pairs(mb_ids)
+    jobs = submit_jobs(jobs)
 
     return jobs
 
@@ -262,49 +263,12 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
     return insar_jobs
 
 
-def submit_pairs(mb_ids: list[str]) -> list[dict]:
-    """Submit multiburst jobs for multiburst sets.
-
-    Args:
-        mb_ids: IDs for the multiburst sets.
-
-    Returns:
-        jobs: Submitted multiburst jobs.
-    """
-    hyp3 = sdk.HyP3(
-        os.environ.get('HYP3_API'),
-        username=os.environ.get('EARTHDATA_USERNAME'),
-        password=os.environ.get('EARTHDATA_PASSWORD'),
-    )
-    insar_jobs = prepare_pairs(mb_ids)
-    job_params = list_pending_running_jobs_parameters(hyp3)
-    insar_jobs = [job for job in insar_jobs if job['job_parameters'] not in job_params]
-    jobs = pairs.submit_jobs(insar_jobs, hyp3)
-
-    return jobs
-
-
-def list_pending_running_jobs_parameters(hyp3: sdk.HyP3) -> list[dict]:
-    """List jobs that are pending or running.
-
-    Args:
-        hyp3: Instance of HyP3 where the user has been logged in.
-
-    Returns:
-        jobs_params: List with the parameters of the jobs submitted.
-    """
-    jobs = hyp3.find_jobs(status_code='PENDING')
-    jobs += hyp3.find_jobs(status_code='RUNNING')
-    jobs_params = [job.to_dict()['job_parameters'] for job in jobs]
-
-    return jobs_params
-
-
 def initial_run() -> list[dict]:
     """Initial run for the deployment."""
     burst_dic = json.loads(MULTIBURST_JSON.read_text())
     mb_ids = [key for key in burst_dic.keys()]
-    jobs = submit_pairs(mb_ids)
+    jobs = prepare_pairs(mb_ids)
+    jobs = submit_jobs(jobs)
 
     return jobs
 
