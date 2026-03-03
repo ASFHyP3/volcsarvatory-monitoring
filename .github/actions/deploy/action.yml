@@ -43,6 +43,7 @@ runs:
           --parameter-overrides \
             Sentinel1TopicArn=${{ inputs.SENTINEL1_TOPIC_ARN }} \
             AOITopicArn=${{ inputs.AOI_TOPIC_ARN }} \
+            BucketTopicArn=${{ inputs.BUCKET_TOPIC_ARN }} \
             Hyp3Api=${{ inputs.HYP3_API }} \
             Hyp3JobsTable=${{ inputs.HYP3_JOBS_TABLE }} \
             LambdaLoggingLevel=${{ inputs.LAMBDA_LOGGING_LEVEL }} \

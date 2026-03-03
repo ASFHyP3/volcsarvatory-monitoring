@@ -50,7 +50,7 @@ jobs:
         with:
           platforms: ${{ env.PLATFORMS }}
 
-      - uses: aws-actions/configure-aws-credentials@v5
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -118,6 +118,7 @@ jobs:
           CF_TEMPLATE_BUCKET: cf-templates-1uzy61g1h6omf-us-west-2
           SENTINEL1_TOPIC_ARN: ${{ vars.SENTINEL1_TOPIC_ARN }}
           AOI_TOPIC_ARN: ${{ vars.AOI_TOPIC_ARN }}
+          BUCKET_TOPIC_ARN: ${{ vars.BUCKET_TOPIC_ARN }}
           HYP3_API: ${{ vars.HYP3_API }}
           HYP3_JOBS_TABLE: ${{ vars.HYP3_JOBS_TABLE }}
           LAMBDA_LOGGING_LEVEL: INFO

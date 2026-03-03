@@ -35,18 +35,19 @@ def submit_jobs(jobs: list[dict]) -> list[dict]:
     return jobs
 
 
-def list_pending_running_jobs_parameters(job_type: str) -> list[dict]:
+def list_pending_running_jobs_parameters(job_type: str, name: str | None = None) -> list[dict]:
     """List jobs that are pending or running.
 
     Args:
         job_type: Name of the job type to submit.
+        name: Project name for the submitted jobs.
 
     Returns:
         jobs_params: List with the parameters of the jobs submitted.
     """
     hyp3 = get_hyp3_instance()
-    jobs = hyp3.find_jobs(job_type=job_type, status_code='PENDING')
-    jobs += hyp3.find_jobs(job_type=job_type, status_code='RUNNING')
+    jobs = hyp3.find_jobs(job_type=job_type, name=name, status_code='PENDING')
+    jobs += hyp3.find_jobs(job_type=job_type, name=name, status_code='RUNNING')
     jobs_params = [job.to_dict()['job_parameters'] for job in jobs]
 
     return jobs_params
