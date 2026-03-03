@@ -5,6 +5,9 @@ Parameters:
   AOITopicArn:
     Type: String
 
+  BucketTopicArn:
+    Type: String
+
   Hyp3Api:
     Type: String
 
@@ -93,12 +96,45 @@ Resources:
       Queues:
         - !Ref QueueAOI
 
+  QueueBucket:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 28800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  QueueBucketPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt QueueBucket.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: [!Ref BucketTopicArn]
+      Queues:
+        - !Ref QueueBucket
+
   AOISubscription:
     Type: AWS::SNS::Subscription
     Properties:
       TopicArn: !Ref AOITopicArn
       Protocol: sqs
       Endpoint: !GetAtt QueueAOI.Arn
+
+  BucketSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref BucketTopicArn
+      Protocol: sqs
+      Endpoint: !GetAtt QueueBucket.Arn
 
   Sentinel1Subscription:
     Type: AWS::SNS::Subscription
@@ -176,6 +212,89 @@ Resources:
           - Effect: Allow
             Action: sqs:*
             Resource: !GetAtt QueueAOI.Arn
+          - Effect: Allow
+            Action: dynamodb:Query
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"
+          - Effect: Allow
+            Action:
+              - s3:List*
+              - s3:Get*
+            Resource:
+              - !Sub "arn:aws:s3:::${PublishBucket}/*"
+              - !Sub "arn:aws:s3:::${PublishBucket}"
+          - Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetAuthorizationToken
+              - ecr:GetDownloadUrlForLayer
+            Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/*"
+
+  LambdaMintpy:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.lambda_mintpy_handler
+      Code:
+        ImageUri: !Ref EcrImageUri
+      Role: !GetAtt LambdaMintpyRole.Arn
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          HYP3_API: !Ref Hyp3Api
+          JOBS_TABLE_NAME: !Ref Hyp3JobsTable
+          LOGGING_LEVEL: !Ref LambdaLoggingLevel
+          EARTHDATA_USERNAME: !Ref EarthdataUsername
+          EARTHDATA_PASSWORD: !Ref EarthdataPassword
+          PUBLISH_BUCKET: !Ref PublishBucket
+
+  LambdaMintpyEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref LambdaMintpy
+      BatchSize: 1
+      EventSourceArn: !GetAtt QueueBucket.Arn
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      ScalingConfig:
+        MaximumConcurrency: 100
+
+  LambdaMintpyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaMintpy}"
+      RetentionInDays: 90
+
+  LambdaMintpyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      ManagedPolicyArns:
+        - !Ref LambdaMintpyPolicy
+
+  LambdaMintpyPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+          - Effect: Allow
+            Action: sqs:*
+            Resource: !GetAtt QueueBucket.Arn
           - Effect: Allow
             Action: dynamodb:Query
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"

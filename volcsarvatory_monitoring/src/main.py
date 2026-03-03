@@ -6,7 +6,7 @@ import os
 
 import asf_search as asf
 
-from hyp3_query import wait_jobs
+from hyp3_query import list_pending_running_jobs_parameters
 from s1burst import create_aux_jsons, initial_run, submit_pairs_burst
 from timeseries import submit_timeseries
 
@@ -49,6 +49,24 @@ def product_id_from_message(message: dict) -> str:
             raise ValueError(f'Unable to determine product ID from message {message}')
 
 
+def product_mbid_from_bucket(message: dict) -> str:
+    """Return a multiburst product ID from an SQS message.
+
+    Args:
+        message: SQS message as received from supported satellite missions (Sentinel-1).
+
+    Returns:
+        product_id: the product ID of a scene
+    """
+    # See `tests/integration/*-valid.json` for example messages
+    records = message['Records']
+    if len(records) == 0:
+        raise ValueError(f'Unable to determine product ID from message {message}')
+    else:
+        key = records[0]['s3']['object']['key']
+        return key.split('/')[1]
+
+
 def lambda_handler(event: dict, context: object) -> dict:
     """Landsat processing lambda function.
 
@@ -68,10 +86,7 @@ def lambda_handler(event: dict, context: object) -> dict:
             message = json.loads(body['Message'])
             product_id = product_id_from_message(message)
             burst_id = get_burst_id(product_id)
-            jobs = submit_pairs_burst(burst_id)
-            wait_jobs(jobs)
-            mb_ids = list(set([job['job_parameters']['name'] for job in jobs]))
-            submit_timeseries(mb_ids)
+            submit_pairs_burst(burst_id)
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
@@ -94,9 +109,35 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     for record in event['Records']:
         try:
             jobs = initial_run()
-            wait_jobs(jobs)
-            mb_ids = list(set([job['job_parameters']['name'] for job in jobs]))
-            submit_timeseries(mb_ids)
+        except Exception:
+            log.exception(f'Could not process message {record["messageId"]}')
+            batch_item_failures.append({'itemIdentifier': record['messageId']})
+    return {'batchItemFailures': batch_item_failures}
+
+
+def lambda_mintpy_handler(event: dict, context: object) -> dict:
+    """Landsat processing lambda function.
+
+    Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
+
+    Args:
+        event: The event dictionary that contains the parameters sent when this function is invoked.
+        context: The context in which is function is called.
+
+    Returns:
+        AWS SQS batchItemFailures JSON response including messages that failed to be processed
+    """
+    batch_item_failures = []
+    for record in event['Records']:
+        try:
+            body = json.loads(record['body'])
+            message = json.loads(body['Message'])
+            mbid = product_mbid_from_bucket(message)
+            pending = list_pending_running_jobs_parameters(job_type='INSAR_ISCE_MULTI_BURST', name=mbid)
+            if len(pending) > 0:
+                pass
+            else:
+                submit_timeseries([mb_id])
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
