@@ -40,6 +40,7 @@ def list_pending_running_jobs_parameters(job_type: str, name: str | None = None)
 
     Args:
         job_type: Name of the job type to submit.
+        name: Project name for the submitted jobs.
 
     Returns:
         jobs_params: List with the parameters of the jobs submitted.

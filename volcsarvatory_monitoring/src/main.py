@@ -108,7 +108,7 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     batch_item_failures = []
     for record in event['Records']:
         try:
-            jobs = initial_run()
+            initial_run()
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
@@ -137,7 +137,7 @@ def lambda_mintpy_handler(event: dict, context: object) -> dict:
             if len(pending) > 0:
                 pass
             else:
-                submit_timeseries([mb_id])
+                submit_timeseries([mbid])
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
