@@ -33,6 +33,7 @@ def prepare_mintpy_jobs(mb_ids: list[str]) -> list[dict]:
     for mb_id in mb_ids:
         prepared_job: dict = deepcopy(MINTPY_JOB_TEMPLATE)
         prepared_job['name'] = mb_id
+        prepared_job['job_parameters']['input_bucket'] = os.environ.get('PUBLISH_BUCKET')
         prepared_job['job_parameters']['input_prefix'] = f'multiburst_products/{mb_id}'
         prepared_job['job_parameters']['publish_bucket'] = os.environ.get('PUBLISH_BUCKET')
         mintpy_jobs.append(prepared_job)
@@ -65,6 +66,7 @@ def prepare_split_mintpy_jobs(mb_ids: list[str], window: int = 730) -> list[dict
                 end_date = start_date + timedelta(days=730)
             prepared_job: dict = deepcopy(MINTPY_JOB_TEMPLATE)
             prepared_job['name'] = mb_id
+            prepared_job['job_parameters']['input_bucket'] = os.environ.get('PUBLISH_BUCKET')
             prepared_job['job_parameters']['input_prefix'] = f'multiburst_products/{mb_id}'
             prepared_job['job_parameters']['start_date'] = start_date.strftime('%Y-%m-%d')
             prepared_job['job_parameters']['end_date'] = end_date.strftime('%Y-%m-%d')
