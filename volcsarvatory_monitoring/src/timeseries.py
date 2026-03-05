@@ -5,6 +5,7 @@ import shutil
 from copy import deepcopy
 from datetime import datetime, timedelta
 
+import boto3
 import h5py
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
@@ -89,6 +90,21 @@ def submit_timeseries(mb_ids: list[str]) -> list[dict]:
     jobs = submit_jobs(mintpy_jobs)
 
     return jobs
+
+
+def list_mbids_bucket() -> list[str]:
+    """List multiburst ids in the s3 bucket.
+
+    Returns:
+        mb_ids: List of multiburst ids.
+    """
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(os.environ.get('PUBLISH_BUCKET'))
+    prefix = 'multiburst_ts/'
+    objects = bucket.objects.filter(Prefix=prefix)
+    mb_ids = [obj.key.split('/')[1].split('.zip')[0] for obj in objects if '.zip' in obj.key.split('/')[1]]
+
+    return mb_ids
 
 
 def change_reference(h5file: str, ref_coords: tuple[float, float]) -> None:

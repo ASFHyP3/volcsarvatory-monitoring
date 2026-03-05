@@ -7,8 +7,8 @@ import os
 import asf_search as asf
 
 from hyp3_query import list_pending_running_jobs_parameters
-from s1burst import create_aux_jsons, initial_run, submit_pairs_burst
-from timeseries import submit_timeseries
+from s1burst import MULTIBURST_JSON, create_aux_jsons, initial_run, submit_pairs_burst
+from timeseries import list_mbids_bucket, submit_timeseries
 
 
 log = logging.getLogger('its_live_monitoring')
@@ -108,7 +108,13 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     batch_item_failures = []
     for record in event['Records']:
         try:
-            initial_run()
+            jobs = initial_run()
+            mb_ids = json.loads(MULTIBURST_JSON.read_text())
+            mb_ids_pending = [job['name'] for job in jobs]
+            mb_ids_bucket = list_mbids_bucket()
+            mb_ids_missing = list(set(mb_ids).difference(set(mb_ids_bucket)))
+            mb_ids_missing = list(set(mb_ids_missing).difference(set(mb_ids_pending)))
+            submit_timeseries(mb_ids_missing)
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
