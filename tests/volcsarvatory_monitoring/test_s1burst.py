@@ -18,11 +18,11 @@ def test_get_mbid():
 
     mb_id = s1burst.get_mbid(mb_dic, resolution=None)
 
-    assert mb_id == '000_000001n04_000002n02_000003n01_INT80'
+    assert mb_id == '000_000001s1n04_000002s2n02_000003s3n01_INT80'
 
     mb_id = s1burst.get_mbid(mb_dic, resolution='5x1')
 
-    assert mb_id == '000_000001n04_000002n02_000003n01_INT05'
+    assert mb_id == '000_000001s1n04_000002s2n02_000003s3n01_INT05'
 
 
 @responses.activate
@@ -50,7 +50,7 @@ def test_get_multibursts(mock_burst_ids):
     }
 
     mb_dic = s1burst.get_multibursts(aoi_dic, 'test')
-    key = '000_000001n01_000000n00_000000n00_INT80'
+    key = '000_000001s1n01_000000s2n00_000000s3n00_INT80'
 
     assert key in mb_dic.keys()
     assert 'mb_set' in mb_dic[key].keys()
@@ -61,18 +61,18 @@ def test_update_aoi_multibursts(mock_multibursts):
     bbox = [-176.25, -175.92, 51.95, 52.14]
     aoi_dic = {'test': {'AOI': bbox}, 'test1': {'AOI': bbox}}
     mb_dic1: dict[str, dict] = {
-        '000_000001n01_000000n00_000000n00_INT80': {'mb_set': {}},
-        '000_000002n01_000000n00_000000n00_INT80': {'mb_set': {}},
+        '000_000001s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
+        '000_000002s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
     }
     mb_dic2: dict[str, dict] = {
-        '000_000003n01_000000n00_000000n00_INT80': {'mb_set': {}},
-        '000_000004n01_000000n00_000000n00_INT80': {'mb_set': {}},
+        '000_000003s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
+        '000_000004s2n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
     }
     mock_multibursts.side_effect = [mb_dic1, mb_dic2]
     aoi_gdf, mb_dics = s1burst.update_aoi_multibursts(aoi_dic)
 
     assert not (aoi_gdf[aoi_gdf['name'] == 'test'].empty or aoi_gdf[aoi_gdf['name'] == 'test1'].empty)
-    assert '000_000003n01_000000n00_000000n00_INT80' in mb_dics
+    assert '000_000003s1n01_000000s2n00_000000s3n00_INT80' in mb_dics
     assert len(mb_dics) == 4
     s1burst.aoi.PARQUET_FILE.unlink()
 
@@ -82,7 +82,7 @@ def test_list_bursts() -> None:
         '000_000001': ('IW1',),
         '000_000002': ('IW2',),
     }
-    mb_dic = {'000_000001n01_000000n00_000000n00_INT80': {'mb_set': mb_set}}
+    mb_dic = {'000_000001s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': mb_set}}
     burst_ids = s1burst.list_bursts(mb_dic)
 
     assert '000_000001_IW1' in burst_ids
@@ -108,14 +108,14 @@ def test_list_pairs_s3(mock_s3_objects) -> None:
 
 def test_get_multibursts_ids():
     mb_dic = {
-        '000_000001n01_000000n00_000000n00_INT80': {'mb_set': {'000_000001': ('IW1',)}},
-        '000_000002n01_000000n00_000000n00_INT80': {'mb_set': {'000_000002': ('IW1',)}},
+        '000_000001s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {'000_000001': ('IW1',)}},
+        '000_000002s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {'000_000002': ('IW1',)}},
     }
     with s1burst.MULTIBURST_JSON.open('w') as json_file:
         json.dump(mb_dic, json_file)
     mb_ids = s1burst.get_multibursts_ids('000_000001_IW1')
 
-    assert '000_000001n01_000000n00_000000n00_INT80' in mb_ids
+    assert '000_000001s1n01_000000s2n00_000000s3n00_INT80' in mb_ids
 
     s1burst.MULTIBURST_JSON.unlink()
 
@@ -170,7 +170,7 @@ def test_deduplicate_pairs(mock_sbas_pairs, mock_s3_objects) -> None:
 @patch('s1burst.deduplicate_pairs')
 def test_prepare_pairs(mock_deduplicate) -> None:
     mb_dic = {
-        '000_000001n02_000000n00_000000n00_INT80': {
+        '000_000001s1n02_000000s2n00_000000s3n00_INT80': {
             'mb_set': {'000_000001': ('IW1',), '000_000002': ('IW1',)},
             'temporal_baseline': None,
             'season': None,
