@@ -161,7 +161,7 @@ def get_mbid(dic: dict, resolution: str | None) -> str:
     swath1 = str(len(iw1s)).zfill(2)
     swath2 = str(len(iw2s)).zfill(2)
     swath3 = str(len(iw3s)).zfill(2)
-    mb_id = f'{path}_{iw1}n{swath1}_{iw2}n{swath2}_{iw3}n{swath3}_INT{res}'
+    mb_id = f'{path}_{iw1}s1n{swath1}_{iw2}s2n{swath2}_{iw3}s3n{swath3}_INT{res}'
 
     return mb_id
 
