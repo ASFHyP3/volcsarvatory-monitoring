@@ -236,7 +236,7 @@ Resources:
       PackageType: Image
       ImageConfig:
         Command:
-          - main.lambda_mintpy_handler
+          - main.lambda_bucket_handler
       Code:
         ImageUri: !Ref EcrImageUri
       Role: !GetAtt LambdaMintpyRole.Arn

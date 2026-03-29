@@ -1,8 +1,10 @@
 """volcsarvatory-monitoring processing for HyP3."""
 
+import boto3
 import json
 import logging
 import os
+import subprocess
 
 import asf_search as asf
 
@@ -49,7 +51,36 @@ def product_id_from_message(message: dict) -> str:
             raise ValueError(f'Unable to determine product ID from message {message}')
 
 
+def check_multiburst_product(message: dict) -> str:
+    """Check if file in bucket is a multiburst product.
+
+    Args:
+        message: SQS message as received from supported satellite missions (Sentinel-1).
+
+    Returns:
+        product_id: the product ID of a scene
+    """
+    # See `tests/integration/*-valid.json` for example messages
+    key = get_path(message)
+    return 'multiburst_products' in key
+
+
 def product_mbid_from_bucket(message: dict) -> str:
+    """Return a multiburst product ID from an SQS message.
+
+    Args:
+        message: SQS message as received from supported satellite missions (Sentinel-1).
+
+    Returns:
+        product_id: the product ID of a scene
+    """
+    # See `tests/integration/*-valid.json` for example messages
+    records = message['Records']
+    key = get_path(message)
+    return key.split('/')[1]
+
+
+def get_product(message: dict) -> str:
     """Return a multiburst product ID from an SQS message.
 
     Args:
@@ -64,7 +95,7 @@ def product_mbid_from_bucket(message: dict) -> str:
         raise ValueError(f'Unable to determine product ID from message {message}')
     else:
         key = records[0]['s3']['object']['key']
-        return key.split('/')[1]
+        return key
 
 
 def lambda_handler(event: dict, context: object) -> dict:
@@ -121,7 +152,57 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     return {'batchItemFailures': batch_item_failures}
 
 
-def lambda_mintpy_handler(event: dict, context: object) -> dict:
+def get_secret(secret_name):
+    """Retrieves the secret from AWS Secrets Manager.
+
+    Args:
+        secret_name: secret name in AWS Secrets Manager.
+
+    Returns:
+        secret_key: value of the secret key
+    """
+    client = boto3.client('secretsmanager', region_name=os.environ['AWS_REGION'])
+    try:
+        response = client.get_secret_value(SecretId=secret_name)
+        if 'SecretString' in response:
+            return response['SecretString']
+        # Handle binary secrets if needed
+    except Exception as e:
+        print(f"Error retrieving secret: {e}")
+        raise e
+
+
+def transfer_file(product: str):
+    """Transfer file from s3 bucket to AVO server.
+
+    Args:
+        product: key for file in s3 bucket.
+    """
+    private_key_str = get_secret("SSH_KEY")
+    key_file_path = "/tmp/ssh_key.pem"
+    with open(key_file_path, "w") as f:
+        f.write(private_key_str)
+    # Change permissions as required by SSH (read-only for the owner)
+    os.chmod(key_file_path, 0o400)
+
+    bucket_name = os.environ.get('PUBLISH_BUCKET')
+    s3 = boto3.client('s3')
+    s3.download_file(bucket_name, product, product)
+    ssh_opts = [
+            "-i", "/tmp/ssh_key.pem"
+            "-o", "BatchMode=yes",          
+            "-o", "IdentitiesOnly=yes",     
+            "-o", "ControlMaster=auto",     
+            "-o", "ControlPersist=10m",
+            "-o", "ControlPath=~/.ssh/cm-%r@%h:%p",
+        ]
+    remote = 'geodesy@apps.avo.alaska.edu'
+    remote_base = '/shared/data/geodesy/overlay-test'
+    dest = f"{remote}:{remote_base}/insar/{product}"
+    subprocess.run(['scp', *ssh_opts, product, dest], check=True)
+
+
+def lambda_bucket_handler(event: dict, context: object) -> dict:
     """Landsat processing lambda function.
 
     Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
@@ -138,12 +219,15 @@ def lambda_mintpy_handler(event: dict, context: object) -> dict:
         try:
             body = json.loads(record['body'])
             message = json.loads(body['Message'])
-            mbid = product_mbid_from_bucket(message)
-            pending = list_pending_running_jobs_parameters(job_type='INSAR_ISCE_MULTI_BURST', name=mbid)
-            if len(pending) > 0:
-                pass
-            else:
-                submit_timeseries([mbid])
+            if check_multiburst_product(message):
+                mbid = product_mbid_from_bucket(message)
+                pending = list_pending_running_jobs_parameters(job_type='INSAR_ISCE_MULTI_BURST', name=mbid)
+                if len(pending) > 0:
+                    pass
+                else:
+                    submit_timeseries([mbid])
+            product = get_product(message)
+            transfer_file(product)
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
