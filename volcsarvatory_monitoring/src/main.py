@@ -1,12 +1,13 @@
 """volcsarvatory-monitoring processing for HyP3."""
 
-import boto3
 import json
 import logging
 import os
 import subprocess
+from pathlib import Path
 
 import asf_search as asf
+import boto3
 
 from hyp3_query import list_pending_running_jobs_parameters
 from s1burst import MULTIBURST_JSON, create_aux_jsons, initial_run, submit_pairs_burst
@@ -51,7 +52,7 @@ def product_id_from_message(message: dict) -> str:
             raise ValueError(f'Unable to determine product ID from message {message}')
 
 
-def check_multiburst_product(message: dict) -> str:
+def check_multiburst_product(message: dict) -> bool:
     """Check if file in bucket is a multiburst product.
 
     Args:
@@ -61,7 +62,7 @@ def check_multiburst_product(message: dict) -> str:
         product_id: the product ID of a scene
     """
     # See `tests/integration/*-valid.json` for example messages
-    key = get_path(message)
+    key = get_product(message)
     return 'multiburst_products' in key
 
 
@@ -75,8 +76,7 @@ def product_mbid_from_bucket(message: dict) -> str:
         product_id: the product ID of a scene
     """
     # See `tests/integration/*-valid.json` for example messages
-    records = message['Records']
-    key = get_path(message)
+    key = get_product(message)
     return key.split('/')[1]
 
 
@@ -87,7 +87,7 @@ def get_product(message: dict) -> str:
         message: SQS message as received from supported satellite missions (Sentinel-1).
 
     Returns:
-        product_id: the product ID of a scene
+        product_id: the key of a scene
     """
     # See `tests/integration/*-valid.json` for example messages
     records = message['Records']
@@ -152,7 +152,7 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     return {'batchItemFailures': batch_item_failures}
 
 
-def get_secret(secret_name):
+def get_secret(secret_name: str) -> str:
     """Retrieves the secret from AWS Secrets Manager.
 
     Args:
@@ -162,43 +162,50 @@ def get_secret(secret_name):
         secret_key: value of the secret key
     """
     client = boto3.client('secretsmanager', region_name=os.environ['AWS_REGION'])
+    private_key_str = ""
     try:
         response = client.get_secret_value(SecretId=secret_name)
         if 'SecretString' in response:
-            return response['SecretString']
+            private_key_str = response['SecretString']
         # Handle binary secrets if needed
     except Exception as e:
-        print(f"Error retrieving secret: {e}")
+        print(f'Error retrieving secret: {e}')
         raise e
+    return private_key_str
 
 
-def transfer_file(product: str):
+def transfer_file(product: str) -> None:
     """Transfer file from s3 bucket to AVO server.
 
     Args:
         product: key for file in s3 bucket.
     """
-    private_key_str = get_secret("SSH_KEY")
-    key_file_path = "/tmp/ssh_key.pem"
-    with open(key_file_path, "w") as f:
+    private_key_str = get_secret('SSH_KEY')
+    key_file_path = '/tmp/ssh_key.pem'
+    with Path(key_file_path).open('w') as f:
         f.write(private_key_str)
     # Change permissions as required by SSH (read-only for the owner)
-    os.chmod(key_file_path, 0o400)
+    Path(key_file_path).chmod(0o400)
 
     bucket_name = os.environ.get('PUBLISH_BUCKET')
     s3 = boto3.client('s3')
     s3.download_file(bucket_name, product, product)
     ssh_opts = [
-            "-i", "/tmp/ssh_key.pem"
-            "-o", "BatchMode=yes",          
-            "-o", "IdentitiesOnly=yes",     
-            "-o", "ControlMaster=auto",     
-            "-o", "ControlPersist=10m",
-            "-o", "ControlPath=~/.ssh/cm-%r@%h:%p",
-        ]
+        '-i',
+        '/tmp/ssh_key.pem-o',
+        'BatchMode=yes',
+        '-o',
+        'IdentitiesOnly=yes',
+        '-o',
+        'ControlMaster=auto',
+        '-o',
+        'ControlPersist=10m',
+        '-o',
+        'ControlPath=~/.ssh/cm-%r@%h:%p',
+    ]
     remote = 'geodesy@apps.avo.alaska.edu'
     remote_base = '/shared/data/geodesy/overlay-test'
-    dest = f"{remote}:{remote_base}/insar/{product}"
+    dest = f'{remote}:{remote_base}/insar/{product}'
     subprocess.run(['scp', *ssh_opts, product, dest], check=True)
 
 
