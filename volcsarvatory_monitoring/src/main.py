@@ -156,7 +156,7 @@ def get_secret(key: str) -> str:
     """Retrieves the secret from AWS Secrets Manager.
 
     Args:
-        secret_name: secret name in AWS Secrets Manager.
+        key: key in AWS Secrets Manager.
 
     Returns:
         secret_key: value of the secret key
@@ -169,7 +169,12 @@ def get_secret(key: str) -> str:
             'Please provide S3 Bucket upload access key credentials via the '
             'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables'
         )
-    client = boto3.client('secretsmanager', aws_access_key_id=access_key_id, aws_secret_access_key=access_key_secret, region_name=os.environ['AWS_REGION'])
+    client = boto3.client(
+        'secretsmanager', 
+        aws_access_key_id=access_key_id, 
+        aws_secret_access_key=access_key_secret, 
+        region_name=os.environ['AWS_REGION']
+    )
     private_key_str = ''
     secret_name = 'hyp3-volcsarvatory'
     try:
