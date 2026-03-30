@@ -152,7 +152,7 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     return {'batchItemFailures': batch_item_failures}
 
 
-def get_secret(secret_name: str) -> str:
+def get_secret(key: str) -> str:
     """Retrieves the secret from AWS Secrets Manager.
 
     Args:
@@ -161,12 +161,21 @@ def get_secret(secret_name: str) -> str:
     Returns:
         secret_key: value of the secret key
     """
-    client = boto3.client('secretsmanager', region_name=os.environ['AWS_REGION'])
+    try:
+        access_key_id = os.environ['AWS_ACCESS_KEY_ID']
+        access_key_secret = os.environ['AWS_SECRET_ACCESS_KEY']
+    except KeyError:
+        raise ValueError(
+            'Please provide S3 Bucket upload access key credentials via the '
+            'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables'
+        )
+    client = boto3.client('secretsmanager', aws_access_key_id=access_key_id, aws_secret_access_key=access_key_secret, region_name=os.environ['AWS_REGION'])
     private_key_str = ''
+    secret_name = 'hyp3-volcsarvatory'
     try:
         response = client.get_secret_value(SecretId=secret_name)
-        if 'SecretString' in response:
-            private_key_str = response['SecretString']
+        if key in response:
+            private_key_str = response[key]
         # Handle binary secrets if needed
     except Exception as e:
         print(f'Error retrieving secret: {e}')
@@ -192,7 +201,8 @@ def transfer_file(product: str) -> None:
     s3.download_file(bucket_name, product, product)
     ssh_opts = [
         '-i',
-        '/tmp/ssh_key.pem-o',
+        '/tmp/ssh_key.pem',
+        '-o',
         'BatchMode=yes',
         '-o',
         'IdentitiesOnly=yes',
