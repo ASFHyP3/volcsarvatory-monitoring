@@ -170,10 +170,10 @@ def get_secret(key: str) -> str:
             'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables'
         )
     client = boto3.client(
-        'secretsmanager', 
-        aws_access_key_id=access_key_id, 
-        aws_secret_access_key=access_key_secret, 
-        region_name=os.environ['AWS_REGION']
+        'secretsmanager',
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=access_key_secret,
+        region_name=os.environ['AWS_REGION'],
     )
     private_key_str = ''
     secret_name = 'hyp3-volcsarvatory'
