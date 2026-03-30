@@ -162,7 +162,7 @@ def get_secret(secret_name: str) -> str:
         secret_key: value of the secret key
     """
     client = boto3.client('secretsmanager', region_name=os.environ['AWS_REGION'])
-    private_key_str = ""
+    private_key_str = ''
     try:
         response = client.get_secret_value(SecretId=secret_name)
         if 'SecretString' in response:
