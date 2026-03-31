@@ -199,10 +199,10 @@ def transfer_file(product: str) -> None:
     key_file_path = Path('/tmp/ssh_key.pem')
     if not key_file_path.parent.exists():
         key_file_path.parent.mkdir(parents=True)
-        with key_file_path.open('w') as f:
-            f.write(private_key_str)
-        # Change permissions as required by SSH (read-only for the owner)
-        key_file_path.chmod(0o400)
+    with key_file_path.open('w') as f:
+        f.write(private_key_str)
+    # Change permissions as required by SSH (read-only for the owner)
+    key_file_path.chmod(0o400)
 
     bucket_name = os.environ.get('PUBLISH_BUCKET')
     product_path = Path(product)
@@ -222,6 +222,8 @@ def transfer_file(product: str) -> None:
     dest = f'{remote}:{remote_base}/insar/'
     subprocess.run(['scp', *ssh_opts, str(product_path.parent.parent), dest], check=True)
     subprocess.run(['rm', '-rf', str(product_path.parent.parent)], check=True)
+    if key_file_path.exists():
+        key_file_path.unlink()
 
 
 def lambda_bucket_handler(event: dict, context: object) -> dict:
