@@ -196,32 +196,27 @@ def transfer_file(product: str) -> None:
     """
     private_key_str = get_secret('SSH_KEY')
     key_file_path = '/tmp/ssh_key.pem'
-    with Path(key_file_path).open('w') as f:
+    key_file_path.parent.mkdir(parents=True)
+    with key_file_path.open('w') as f:
         f.write(private_key_str)
     # Change permissions as required by SSH (read-only for the owner)
-    Path(key_file_path).chmod(0o400)
+    key_file_path.chmod(0o400)
 
     bucket_name = os.environ.get('PUBLISH_BUCKET')
+    product_path = Path(product)
+    product_path.parent.mkdir(parents=True)
     s3 = boto3.client('s3')
     s3.download_file(bucket_name, product, product)
     ssh_opts = [
         '-i',
         '/tmp/ssh_key.pem',
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'IdentitiesOnly=yes',
-        '-o',
-        'ControlMaster=auto',
-        '-o',
-        'ControlPersist=10m',
-        '-o',
-        'ControlPath=~/.ssh/cm-%r@%h:%p',
+        '-r',
     ]
     remote = 'geodesy@apps.avo.alaska.edu'
     remote_base = '/shared/data/geodesy/overlay-test'
-    dest = f'{remote}:{remote_base}/insar/{product}'
-    subprocess.run(['scp', *ssh_opts, product, dest], check=True)
+    dest = f'{remote}:{remote_base}/insar/'
+    subprocess.run(['scp', *ssh_opts, str(product_path.parent.parent), dest], check=True)
+    product_path.unlink()
 
 
 def lambda_bucket_handler(event: dict, context: object) -> dict:
