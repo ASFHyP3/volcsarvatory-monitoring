@@ -209,8 +209,8 @@ def transfer_file(product: str) -> None:
     product_path.parent.mkdir(parents=True)
     s3 = boto3.client('s3')
     s3.download_file(bucket_name, product, product)
-    with zipfile.ZipFile(product, mode="r") as archive:
-        archivo.extractall(str(product_path.parent))
+    with zipfile.ZipFile(product, mode='r') as archive:
+        archive.extractall(str(product_path.parent))
     product_path.unlink()
     ssh_opts = [
         '-i',
