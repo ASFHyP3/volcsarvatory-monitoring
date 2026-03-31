@@ -15,7 +15,7 @@ from s1burst import MULTIBURST_JSON, create_aux_jsons, initial_run, submit_pairs
 from timeseries import list_mbids_bucket, submit_timeseries
 
 
-log = logging.getLogger('its_live_monitoring')
+log = logging.getLogger('volcsarvatory_monitoring')
 log.setLevel(os.environ.get('LOGGING_LEVEL', 'INFO'))
 
 
@@ -199,31 +199,42 @@ def transfer_file(product: str) -> None:
     key_file_path = Path('/tmp/ssh_key.pem')
     if not key_file_path.parent.exists():
         key_file_path.parent.mkdir(parents=True)
-    with key_file_path.open('w') as f:
-        f.write(private_key_str)
-    # Change permissions as required by SSH (read-only for the owner)
-    key_file_path.chmod(0o400)
+    fd = os.open(str(key_file_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o400)
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(private_key_str)
 
-    bucket_name = os.environ.get('PUBLISH_BUCKET')
-    product_path = Path(product)
-    product_path.parent.mkdir(parents=True)
-    s3 = boto3.client('s3')
-    s3.download_file(bucket_name, product, product)
-    with zipfile.ZipFile(product, mode='r') as archive:
-        archive.extractall(str(product_path.parent))
-    product_path.unlink()
-    ssh_opts = [
-        '-i',
-        '/tmp/ssh_key.pem',
-        '-r',
-    ]
-    remote = 'geodesy@apps.avo.alaska.edu'
-    remote_base = '/shared/data/geodesy/overlay-test'
-    dest = f'{remote}:{remote_base}/insar/'
-    subprocess.run(['scp', *ssh_opts, str(product_path.parent.parent), dest], check=True)
-    subprocess.run(['rm', '-rf', str(product_path.parent.parent)], check=True)
-    if key_file_path.exists():
-        key_file_path.unlink()
+        bucket_name = os.environ.get('PUBLISH_BUCKET')
+        product_path = Path(product)
+        product_path.parent.mkdir(parents=True)
+        s3 = boto3.client('s3')
+        s3.download_file(bucket_name, product, product)
+        with zipfile.ZipFile(product, mode='r') as archive:
+            archive.extractall(str(product_path.parent))
+        product_path.unlink()
+        ssh_opts = [
+            '-i',
+            str(key_file_path),
+            '-r',
+        ]
+        remote = 'geodesy@apps.avo.alaska.edu'
+        remote_base = '/shared/data/geodesy/overlay-test'
+        dest = f'{remote}:{remote_base}/insar/'
+        try:
+            subprocess.run(
+                ['scp', *ssh_opts, str(product_path.parent.parent), dest],
+                check=True,
+            )
+        finally:
+            # Always clean up the extracted products directory
+            subprocess.run(
+                ['rm', '-rf', str(product_path.parent.parent)],
+                check=False,
+            )
+    finally:
+        # Ensure the SSH key file is removed even if an error occurs
+        if key_file_path.exists():
+            key_file_path.unlink()
 
 
 def lambda_bucket_handler(event: dict, context: object) -> dict:
