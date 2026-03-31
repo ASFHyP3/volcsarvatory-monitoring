@@ -195,7 +195,7 @@ def transfer_file(product: str) -> None:
         product: key for file in s3 bucket.
     """
     private_key_str = get_secret('SSH_KEY')
-    key_file_path = '/tmp/ssh_key.pem'
+    key_file_path = Path('/tmp/ssh_key.pem')
     key_file_path.parent.mkdir(parents=True)
     with key_file_path.open('w') as f:
         f.write(private_key_str)
