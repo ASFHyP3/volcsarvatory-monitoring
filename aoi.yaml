@@ -11,10 +11,10 @@ GSitkin:
   resolution:
 Holuhraun:
   AOI:
-  - -16.9
+  - -16.87
   - -16.5
-  - 64.8
-  - 65.0
+  - 64.85
+  - 64.94
   temporal_baseline:
   season:
   - '1-1' 
