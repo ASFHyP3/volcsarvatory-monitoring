@@ -87,7 +87,10 @@ def get_multibursts(aois: dict, id: str) -> dict:
         mb_dic[mb_id] = dict()
         mb_dic[mb_id]['mb_set'] = dic
         mb_dic[mb_id]['temporal_baseline'] = aois[id]['temporal_baseline']
-        mb_dic[mb_id]['season'] = aois[id]['season']
+        if aois[id]['season'] is None:
+            mb_dic[mb_id]['season'] = aois[id]['season']
+        else:
+            mb_dic[mb_id]['season'] = tuple(aois[id]['season'])
         mb_dic[mb_id]['target_date'] = aois[id]['target_date']
         mb_dic[mb_id]['bridge_years'] = aois[id]['bridge_years']
         mb_dic[mb_id]['resolution'] = resolution
