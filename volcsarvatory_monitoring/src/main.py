@@ -271,12 +271,13 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
     for record in event['Records']:
         try:
             body = json.loads(record['body'])
-            message = json.loads(body['Message'])
+            message = body['Message']
             if 'New AOI' in message:
                 mb_ids = json.loads(MULTIBURST_JSON.read_text())
                 for mb_id in mb_ids.keys():
                     publish_sns_multiburst(mb_id)
             else:
+                message = json.loads(message)
                 mb_id = product_mbid_from_message(message)
                 jobs = prepare_pairs([mb_id])
                 _ = submit_jobs(jobs)
