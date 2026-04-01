@@ -8,6 +8,7 @@ from pathlib import Path
 import asf_search as asf
 import boto3
 import geopandas as gpd
+import rioxarray  # noqa temporary fix for asf_search
 import ruamel.yaml as yaml
 from asf_search.ASFProduct import ASFProduct
 
