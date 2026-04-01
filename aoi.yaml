@@ -9,3 +9,16 @@ GSitkin:
   target_date:
   bridge_years:
   resolution:
+Holuhraun:
+  AOI:
+  - -16.9
+  - -16.5
+  - 64.8
+  - 65.0
+  temporal_baseline:
+  season:
+  - '1-1' 
+  - '12-31'
+  target_date: '7-1'
+  bridge_years:
+  resolution:
