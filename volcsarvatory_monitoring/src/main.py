@@ -10,9 +10,9 @@ from pathlib import Path
 import asf_search as asf
 import boto3
 
-from hyp3_query import list_pending_running_jobs_parameters
-from s1burst import MULTIBURST_JSON, create_aux_jsons, initial_run, submit_pairs_burst
-from timeseries import list_mbids_bucket, submit_timeseries
+from hyp3_query import list_pending_running_jobs_parameters, submit_jobs
+from s1burst import MULTIBURST_JSON, create_aux_jsons, prepare_pairs, submit_pairs_burst
+from timeseries import submit_timeseries
 
 
 log = logging.getLogger('volcsarvatory_monitoring')
@@ -49,6 +49,23 @@ def product_id_from_message(message: dict) -> str:
     match message:
         case {'granule_ur': product_id} if product_id.startswith('S1'):
             return product_id
+        case _:
+            raise ValueError(f'Unable to determine product ID from message {message}')
+
+
+def product_mbid_from_message(message: dict) -> str:
+    """Return a multiburst ID from an SQS message.
+
+    Args:
+        message: SQS message as received from updates in stack monitoring.
+
+    Returns:
+        mb_id: Multiburst ID.
+    """
+    # See `tests/integration/*-valid.json` for example messages
+    match message:
+        case {'mb_id': mb_id} if 'INT' in mb_id:
+            return mb_id
         case _:
             raise ValueError(f'Unable to determine product ID from message {message}')
 
@@ -97,60 +114,6 @@ def get_product(message: dict) -> str:
     else:
         key = records[0]['s3']['object']['key']
         return key
-
-
-def lambda_handler(event: dict, context: object) -> dict:
-    """Landsat processing lambda function.
-
-    Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
-
-    Args:
-        event: The event dictionary that contains the parameters sent when this function is invoked.
-        context: The context in which is function is called.
-
-    Returns:
-        AWS SQS batchItemFailures JSON response including messages that failed to be processed
-    """
-    batch_item_failures = []
-    for record in event['Records']:
-        try:
-            body = json.loads(record['body'])
-            message = json.loads(body['Message'])
-            product_id = product_id_from_message(message)
-            burst_id = get_burst_id(product_id)
-            submit_pairs_burst(burst_id)
-        except Exception:
-            log.exception(f'Could not process message {record["messageId"]}')
-            batch_item_failures.append({'itemIdentifier': record['messageId']})
-    return {'batchItemFailures': batch_item_failures}
-
-
-def lambda_aoi_handler(event: dict, context: object) -> dict:
-    """Landsat processing lambda function.
-
-    Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
-
-    Args:
-        event: The event dictionary that contains the parameters sent when this function is invoked.
-        context: The context in which is function is called.
-
-    Returns:
-        AWS SQS batchItemFailures JSON response including messages that failed to be processed
-    """
-    batch_item_failures = []
-    for record in event['Records']:
-        try:
-            jobs = initial_run()
-            mb_ids = json.loads(MULTIBURST_JSON.read_text())
-            mb_ids_pending = [job['name'] for job in jobs]
-            mb_ids_bucket = list_mbids_bucket()
-            mb_ids_missing = list(set(mb_ids).difference(set(mb_ids_bucket)))
-            mb_ids_missing = list(set(mb_ids_missing).difference(set(mb_ids_pending)))
-            submit_timeseries(mb_ids_missing)
-        except Exception:
-            log.exception(f'Could not process message {record["messageId"]}')
-            batch_item_failures.append({'itemIdentifier': record['messageId']})
-    return {'batchItemFailures': batch_item_failures}
 
 
 def get_secret(key: str) -> str:
@@ -237,8 +200,94 @@ def transfer_file(product: str) -> None:
             key_file_path.unlink()
 
 
-def lambda_bucket_handler(event: dict, context: object) -> dict:
+def publish_sns_multiburst(mb_id: str) -> None:
+    """Publish message in SNS topic for a new multiburst id.
+
+    Args:
+        mb_id: Multiburst ID.
+    """
+    try:
+        access_key_id = os.environ['AWS_ACCESS_KEY_ID']
+        access_key_secret = os.environ['AWS_SECRET_ACCESS_KEY']
+    except KeyError:
+        raise ValueError(
+            'Please provide S3 Bucket upload access key credentials via the '
+            'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables'
+        )
+    client = boto3.client(
+        'sns',
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=access_key_secret,
+        region_name=os.environ['AWS_REGION'],
+    )
+    message = {'mb_id': f'{mb_id}'}
+    _ = client.publish(
+        TargetArn=os.environ['AOI_TOPIC_ARN'],
+        Message=json.dumps({'default': json.dumps(message)}),
+        Subject='a short subject for your message',
+        MessageStructure='json',
+    )
+
+
+def lambda_handler(event: dict, context: object) -> dict:
     """Landsat processing lambda function.
+
+    Accepts an event with SQS records for newly ingested S1-burst and processes each scene.
+
+    Args:
+        event: The event dictionary that contains the parameters sent when this function is invoked.
+        context: The context in which is function is called.
+
+    Returns:
+        AWS SQS batchItemFailures JSON response including messages that failed to be processed
+    """
+    batch_item_failures = []
+    for record in event['Records']:
+        try:
+            body = json.loads(record['body'])
+            message = json.loads(body['Message'])
+            product_id = product_id_from_message(message)
+            burst_id = get_burst_id(product_id)
+            submit_pairs_burst(burst_id)
+        except Exception:
+            log.exception(f'Could not process message {record["messageId"]}')
+            batch_item_failures.append({'itemIdentifier': record['messageId']})
+    return {'batchItemFailures': batch_item_failures}
+
+
+def lambda_aoi_handler(event: dict, context: object) -> dict:
+    """Landsat processing lambda function.
+
+    Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
+
+    Args:
+        event: The event dictionary that contains the parameters sent when this function is invoked.
+        context: The context in which is function is called.
+
+    Returns:
+        AWS SQS batchItemFailures JSON response including messages that failed to be processed
+    """
+    batch_item_failures = []
+    for record in event['Records']:
+        try:
+            body = json.loads(record['body'])
+            message = json.loads(body['Message'])
+            if 'New AOI' in message:
+                mb_ids = json.loads(MULTIBURST_JSON.read_text())
+                for mb_id in mb_ids.keys():
+                    publish_sns_multiburst(mb_id)
+            else:
+                mb_id = product_mbid_from_message(message)
+                jobs = prepare_pairs([mb_id])
+                _ = submit_jobs(jobs)
+        except Exception:
+            log.exception(f'Could not process message {record["messageId"]}')
+            batch_item_failures.append({'itemIdentifier': record['messageId']})
+    return {'batchItemFailures': batch_item_failures}
+
+
+def lambda_bucket_handler(event: dict, context: object) -> dict:
+    """Bucket notification processing lambda function.
 
     Accepts an event with SQS records for newly ingested Landsat scenes and processes each scene.
 
