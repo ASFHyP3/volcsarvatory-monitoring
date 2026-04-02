@@ -125,20 +125,7 @@ def get_secret(key: str) -> str:
     Returns:
         secret_key: value of the secret key
     """
-    try:
-        access_key_id = os.environ['AWS_ACCESS_KEY_ID']
-        access_key_secret = os.environ['AWS_SECRET_ACCESS_KEY']
-    except KeyError:
-        raise ValueError(
-            'Please provide S3 Bucket upload access key credentials via the '
-            'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables'
-        )
-    client = boto3.client(
-        'secretsmanager',
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=access_key_secret,
-        region_name=os.environ['AWS_REGION'],
-    )
+    client = boto3.client('secretsmanager')
     private_key_str = ''
     secret_name = 'hyp3-volcsarvatory'
     try:
@@ -206,25 +193,11 @@ def publish_sns_multiburst(mb_id: str) -> None:
     Args:
         mb_id: Multiburst ID.
     """
-    try:
-        access_key_id = os.environ['AWS_ACCESS_KEY_ID']
-        access_key_secret = os.environ['AWS_SECRET_ACCESS_KEY']
-    except KeyError:
-        raise ValueError(
-            'Please provide S3 Bucket upload access key credentials via the '
-            'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables'
-        )
-    client = boto3.client(
-        'sns',
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=access_key_secret,
-        region_name=os.environ['AWS_REGION'],
-    )
+    client = boto3.client('sns')
     message = {'mb_id': f'{mb_id}'}
     _ = client.publish(
         TargetArn=os.environ['AOI_TOPIC_ARN'],
-        Message=json.dumps({'default': json.dumps(message)}),
-        Subject='a short subject for your message',
+        Message=json.dumps(message),
         MessageStructure='json',
     )
 
