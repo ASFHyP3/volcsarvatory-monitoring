@@ -217,9 +217,6 @@ Resources:
             Action: dynamodb:Query
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"
           - Effect: Allow
-            Action: secretsmanager:GetSecretValue
-            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
-          - Effect: Allow
             Action: sns:Publish
             Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*"
           - Effect: Allow
@@ -305,6 +302,9 @@ Resources:
           - Effect: Allow
             Action: dynamodb:Query
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
           - Effect: Allow
             Action:
               - s3:List*
