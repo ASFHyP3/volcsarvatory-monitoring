@@ -167,6 +167,7 @@ Resources:
           EARTHDATA_USERNAME: !Ref EarthdataUsername
           EARTHDATA_PASSWORD: !Ref EarthdataPassword
           PUBLISH_BUCKET: !Ref PublishBucket
+          AOI_TOPIC_ARN: !Ref AOITopicArn
 
   LambdaAOIEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
