@@ -198,7 +198,6 @@ def publish_sns_multiburst(mb_id: str) -> None:
     _ = client.publish(
         TargetArn=os.environ['AOI_TOPIC_ARN'],
         Message=json.dumps(message),
-        MessageStructure='json',
     )
 
 
