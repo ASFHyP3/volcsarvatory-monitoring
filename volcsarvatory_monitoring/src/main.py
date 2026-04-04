@@ -155,11 +155,11 @@ def transfer_file(product: str) -> None:
             f.write(private_key_str)
 
         bucket_name = os.environ.get('PUBLISH_BUCKET')
-        product_path = Path(product)
+        product_path = '/tmp' / Path(product)
         product_path.parent.mkdir(parents=True)
         s3 = boto3.client('s3')
-        s3.download_file(bucket_name, product, product)
-        with zipfile.ZipFile(product, mode='r') as archive:
+        s3.download_file(bucket_name, product, str(product_path))
+        with zipfile.ZipFile(str(product_path), mode='r') as archive:
             archive.extractall(str(product_path.parent))
         product_path.unlink()
         ssh_opts = [
@@ -282,7 +282,11 @@ def lambda_bucket_handler(event: dict, context: object) -> dict:
                 if len(pending) > 0:
                     pass
                 else:
-                    submit_timeseries([mbid])
+                    pending = list_pending_running_jobs_parameters(job_type='VOLCSARVATORY_MINTPY', name=mbid)
+                    if len(pending) > 0:
+                        pass
+                    else:
+                        submit_timeseries([mbid])
             product = get_product(message)
             transfer_file(product)
         except Exception:
