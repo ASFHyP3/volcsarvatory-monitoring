@@ -122,13 +122,13 @@ def build_sbas_pairs_default(
 
     start_last = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     end_last = datetime.now().strftime('%Y-%m-%d')
-    add_sbas = True # If False it won't add an SBAS for the last year
+    add_sbas = True  # If False it won't add an SBAS for the last year
     for frame in dic.keys():
         for swath in dic[frame]:
             bid = f'{frame}_{swath}'
             res = asf.search(fullBurstID=bid, start=start_last, end=end_last, polarization=asf.POLARIZATION.VV)
             if len(res) == 0:
-                add_sbas = False # No images in the last year
+                add_sbas = False  # No images in the last year
                 break
         if not add_sbas:
             break
