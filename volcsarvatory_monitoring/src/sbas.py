@@ -77,19 +77,21 @@ def get_season(dic: dict) -> tuple[tuple[datetime, datetime], datetime]:
     return season, target
 
 
-def get_sbas_pairs(
+def build_sbas_pairs_default(
     dic: dict,
-    tbaseline: int | None = None,
-    season: tuple[str, str] | None = None,
-    target: str | None = None,
-    bridge: int | None = None,
+    start: str,
+    season: tuple[str, str],
+    tbaseline: int,
+    target: str,
+    bridge: int,
 ) -> tuple[list, list]:
-    """Calculates the sbas pairs for a multiburst set.
+    """Calculates a default sbas pairs for a multiburst set. The result is the merge of a seasonal sbas and all possible pairs for the current year.
 
     Args:
         dic: Dictionary with the multiburst set.
-        tbaseline: Temporal in season baseline in days.
+        start: Start date for the SBAS.
         season: Tuple of strings in the format month-day to define the season.
+        tbaseline: In-season maximum temporal baseline.
         target: String in the format month-day to define the target date to bridge the years.
         bridge: Number of years to bridge.
 
@@ -97,23 +99,6 @@ def get_sbas_pairs(
         refs: Scene names for the reference acqusitions.
         secs: Scene names for the secondary acqusitions.
     """
-    start = first_date_multiburst(dic)
-    if tbaseline is None:
-        tbaseline = 48
-    if season is None or target is None:
-        seasont, targett = get_season(dic)
-        if season is None:
-            start_sea = seasont[0].strftime('%m-%d')
-            end_sea = seasont[1].strftime('%m-%d')
-            season = (start_sea, end_sea)
-        if target is None:
-            target = targett.strftime('%m-%d')
-            if target < season[0] or target > season[1]:
-                target = None
-
-    if bridge is None:
-        bridge = 1
-
     multiburst = asf.MultiBurst(dic)
     opts = asf.ASFSearchOptions(
         **{'start': start, 'end': datetime.now().strftime('%Y-%m-%d'), 'season': pm.get_julian_season(season)}
@@ -164,6 +149,153 @@ def get_sbas_pairs(
         if pair not in pairs:
             refs.append(refs_add[i])
             secs.append(secs_add[i])
+    return refs, secs
+
+
+def build_custom_sbas_pairs_default(
+    dic: dict,
+    start: str,
+    season: dict,
+    tbaseline: int,
+    target: str,
+    bridge: int,
+) -> tuple[list, list]:
+    """Calculates an sbas for a multiburst set. It uses the seasons specified by the user.
+
+    Args:
+        dic: Dictionary with the multiburst set.
+        start: Start date for the SBAS.
+        season: Dictionary with tuples of strings in the format month-day to define the season per year.
+        tbaseline: In-season maximum temporal baseline.
+        target: String in the format month-day to define the target date to bridge the years.
+        bridge: Number of years to bridge.
+
+    Returns:
+        refs: Scene names for the reference acqusitions.
+        secs: Scene names for the secondary acqusitions.
+    """
+    years = [int(year) for year in season.keys()]
+
+    month_start = season[str(min(years))][0].split('-')[0]
+    day_start = season[str(min(years))][0].split('-')[1]
+
+    month_end = season[str(max(years))][1].split('-')[0]
+    day_end = season[str(max(years))][1].split('-')[1]
+
+    start_tmp = f'{str(min(years))}-{month_start.zfill(2)}-{day_start.zfill(2)}'
+    end_tmp = f'{str(max(years))}-{month_end.zfill(2)}-{day_end.zfill(2)}'
+
+    seasons = [float(season[year][0].replace('-', '.')) for year in season.keys()]
+    seasons += [float(season[year][1].replace('-', '.')) for year in season.keys()]
+    season_base = (str(min(seasons)).replace('.', '-'), str(max(seasons)).replace('.', '-'))
+
+    multiburst = asf.MultiBurst(dic)
+
+    if start_tmp < start:
+        start_tmp = start
+    opts = asf.ASFSearchOptions(**{'start': start_tmp, 'end': end_tmp, 'season': pm.get_julian_season(season_base)})
+
+    # Baseline Network without any pairs
+    network = asf.Network(
+        multiburst=multiburst,
+        perp_baseline=800,
+        inseason_temporal_baseline=0,
+        bridge_target_date=target,
+        opts=opts,
+    )
+
+    # Loop over seasons, create a network per season and add pairs to baseline network
+    for season_yr in season.keys():
+        season_tmp = season[season_yr]
+
+        month_start = season_tmp[0].split('-')[0]
+        day_start = season_tmp[0].split('-')[1]
+
+        month_end = season_tmp[1].split('-')[0]
+        day_end = season_tmp[1].split('-')[1]
+
+        start_yr = f'{season_yr}-{month_start.zfill(2)}-{day_start.zfill(2)}'
+        end_yr = f'{season_yr}-{month_end.zfill(2)}-{day_end.zfill(2)}'
+
+        if start_yr < start:
+            start_yr = start
+        opts = asf.ASFSearchOptions(
+            **{'start': start_yr, 'end': end_yr, 'season': pm.get_julian_season(tuple(season[season_yr]))}
+        )
+        network_yr = asf.Network(
+            multiburst=multiburst,
+            perp_baseline=800,
+            inseason_temporal_baseline=tbaseline,
+            bridge_target_date=target,
+            opts=opts,
+        )
+        pairs = [key for key in network_yr.subset_stack.keys()]
+        network.add_pairs(pairs)
+        for d in network.additional_multiburst_networks:
+            d.add_pairs(pairs)
+
+    # Connects network seasons
+    network.connect_components(multiyear_temporal_baseline=tbaseline)
+    refs, secs = network.get_multi_burst_pair_ids()
+
+    return refs, secs
+
+
+def get_sbas_pairs(
+    dic: dict,
+    tbaseline: int | None = None,
+    season: dict | tuple[str, str] | None = None,
+    target: str | None = None,
+    bridge: int | None = None,
+) -> tuple[list, list]:
+    """Calculates the sbas pairs for a multiburst set.
+
+    Args:
+        dic: Dictionary with the multiburst set.
+        tbaseline: Temporal in season baseline in days.
+        season: Tuple of strings in the format month-day to define the season.
+        target: String in the format month-day to define the target date to bridge the years.
+        bridge: Number of years to bridge.
+
+    Returns:
+        refs: Scene names for the reference acqusitions.
+        secs: Scene names for the secondary acqusitions.
+    """
+    if isinstance(season, tuple):
+        if float(season[0].replace('-', '.')) > float(season[1].replace('-', '.')):
+            raise ValueError(f'The second date is before the first date in {season}')
+    elif isinstance(season, dict):
+        for year in season.keys():
+            if float(season[year][0].replace('-', '.')) > float(season[year][1].replace('-', '.')):
+                raise ValueError(f'The second date is before the first date in {season[year]}')
+
+    start = first_date_multiburst(dic)  # First available acquisition
+
+    if tbaseline is None:
+        tbaseline = 48
+
+    if season is None or target is None:
+        seasont, targett = get_season(dic)  # Ideal season and target using coherence catalog
+        if season is None:
+            start_sea = seasont[0].strftime('%m-%d')
+            end_sea = seasont[1].strftime('%m-%d')
+            season = (start_sea, end_sea)
+        if target is None:
+            target = targett.strftime('%m-%d')
+            if float(target.replace('-', '.')) < float(season[0].replace('-', '.')) or float(
+                target.replace('-', '.')
+            ) > float(season[1].replace('-', '.')):
+                month_avg = str(int((int(season[0].split('-')[0]) + int(season[1].split('-')[0])) / 2))
+                day_avg = str(int((int(season[0].split('-')[1]) + int(season[1].split('-')[1])) / 2))
+                target = f'{month_avg}-{day_avg}'
+
+    if bridge is None:
+        bridge = 1
+
+    if isinstance(season, tuple):
+        refs, secs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
+    elif isinstance(season, dict):
+        refs, secs = build_custom_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
 
     return refs, secs
 
