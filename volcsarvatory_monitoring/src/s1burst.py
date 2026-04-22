@@ -88,10 +88,12 @@ def get_multibursts(aois: dict, id: str) -> dict:
         mb_dic[mb_id] = dict()
         mb_dic[mb_id]['mb_set'] = dic
         mb_dic[mb_id]['temporal_baseline'] = aois[id]['temporal_baseline']
-        if aois[id]['season'] is None:
+        if aois[id]['season'] is None or isinstance(aois[id]['season'], dict):
             mb_dic[mb_id]['season'] = aois[id]['season']
-        else:
+        elif isinstance(aois[id]['season'], list) or isinstance(aois[id]['season'], tuple):
             mb_dic[mb_id]['season'] = tuple(aois[id]['season'])
+        else:
+            raise ValueError(f'The season for {id} does not have a correct format')
         mb_dic[mb_id]['target_date'] = aois[id]['target_date']
         mb_dic[mb_id]['bridge_years'] = aois[id]['bridge_years']
         mb_dic[mb_id]['resolution'] = resolution
