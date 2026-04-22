@@ -113,46 +113,62 @@ def build_sbas_pairs_default(
         opts=opts,
     )
 
-    network.connect_components()
-
-    refs, secs = network.get_multi_burst_pair_ids()
-
-    season = ('1-1', '12-31')
-    opts = asf.ASFSearchOptions(
-        **{
-            'start': (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'),
-            'end': datetime.now().strftime('%Y-%m-%d'),
-            'season': pm.get_julian_season(season),
-        }
-    )
-
-    network = asf.Network(
-        multiburst=multiburst,
-        perp_baseline=800,
-        inseason_temporal_baseline=144,
-        bridge_target_date=datetime.now().strftime('%m-%d'),
-        bridge_year_threshold=1,
-        opts=opts,
-    )
-
     try:
         network.connect_components()
     except Exception:
         pass
 
-    refs_add, secs_add = network.get_multi_burst_pair_ids()
+    refs, secs = network.get_multi_burst_pair_ids()
 
-    pairs = list_pair_dates(refs, secs)
-    pairs_add = list_pair_dates(refs_add, secs_add)
+    start_last = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    end_last = datetime.now().strftime('%Y-%m-%d')
+    add_sbas = True  # If False it won't add an SBAS for the last year
+    for frame in dic.keys():
+        for swath in dic[frame]:
+            bid = f'{frame}_{swath}'
+            res = asf.search(fullBurstID=bid, start=start_last, end=end_last, polarization=asf.POLARIZATION.VV)
+            if len(res) == 0:
+                add_sbas = False  # No images in the last year
+                break
+        if not add_sbas:
+            break
 
-    for i, pair in enumerate(pairs_add):
-        if pair not in pairs:
-            refs.append(refs_add[i])
-            secs.append(secs_add[i])
+    if add_sbas:
+        season = ('1-1', '12-31')
+        opts = asf.ASFSearchOptions(
+            **{
+                'start': start_last,
+                'end': end_last,
+                'season': pm.get_julian_season(season),
+            }
+        )
+        network = asf.Network(
+            multiburst=multiburst,
+            perp_baseline=800,
+            inseason_temporal_baseline=144,
+            bridge_target_date=datetime.now().strftime('%m-%d'),
+            bridge_year_threshold=1,
+            opts=opts,
+        )
+
+        try:
+            network.connect_components()
+        except Exception:
+            pass
+
+        refs_add, secs_add = network.get_multi_burst_pair_ids()
+
+        pairs = list_pair_dates(refs, secs)
+        pairs_add = list_pair_dates(refs_add, secs_add)
+
+        for i, pair in enumerate(pairs_add):
+            if pair not in pairs:
+                refs.append(refs_add[i])
+                secs.append(secs_add[i])
     return refs, secs
 
 
-def build_custom_sbas_pairs_default(
+def build_sbas_pairs_custom(
     dic: dict,
     start: str,
     season: dict,
@@ -295,7 +311,7 @@ def get_sbas_pairs(
     if isinstance(season, tuple):
         refs, secs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
     elif isinstance(season, dict):
-        refs, secs = build_custom_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
+        refs, secs = build_sbas_pairs_custom(dic, start, season, tbaseline, target, bridge)
 
     return refs, secs
 

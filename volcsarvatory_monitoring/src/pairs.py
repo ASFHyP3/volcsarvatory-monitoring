@@ -38,6 +38,14 @@ def get_coherence(multiburst_dict: dict, num: int = 1) -> dict:
         prods = asf.search(fullBurstID=bid, start='2019-12-01', end='2021-02-01', polarization=asf.POLARIZATION.VV)[
             ::-1
         ]
+        if len(prods) == 0:
+            results = asf.search(fullBurstID=bid, polarization=asf.POLARIZATION.VV)
+            start_date = results[-1].properties['stopTime'].split('T')[0]
+            end_year = str(int(start_date.split('-')[0]) + 1)
+            end_month = start_date.split('-')[1]
+            end_day = start_date.split('-')[2]
+            end_date = f'{end_year}-{end_month}-{end_day}'
+            prods = asf.search(fullBurstID=bid, start=start_date, end=end_date, polarization=asf.POLARIZATION.VV)[::-1]
         for i, ref in enumerate(prods[0:-1]):
             for sec in prods[i + 1 : :]:
                 pair = asf.Pair(ref, sec)
