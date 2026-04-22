@@ -9,6 +9,28 @@ GSitkin:
   target_date:
   bridge_years:
   resolution:
+Okmok:
+  AOI:
+  - -168.5
+  - -167.75
+  - 53.15
+  - 53.6
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Kilauea:
+  AOI:
+  - -156.1
+  - -154.7
+  - 18.7
+  - 20.4
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
 Holuhraun:
   AOI:
   - -16.87
@@ -17,8 +39,30 @@ Holuhraun:
   - 64.94
   temporal_baseline:
   season:
-  - '1-1' 
-  - '12-31'
-  target_date: '7-1'
+    2014: 
+    - '1-1' 
+    - '12-31'
+    2015:
+    - '1-1' 
+    - '12-31'
+    2016:
+    - '1-1' 
+    - '12-31'
+    2017:
+    - '1-1' 
+    - '12-31'
+    2018:
+    - '5-15' 
+    - '11-30'
+    2019:
+    - '5-15' 
+    - '11-30'
+    2020:
+    - '5-15' 
+    - '11-30'
+    2021:
+    - '5-15' 
+    - '11-30'
+  target_date: '8-1'
   bridge_years:
-  resolution:
+  resolution: '5x1'
