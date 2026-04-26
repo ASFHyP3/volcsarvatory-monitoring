@@ -249,7 +249,9 @@ def build_sbas_pairs_custom(
 
         if start_yr < start:
             start_yr = start
-        if check_available_acquisitions(dic, start_yr, end_yr):  # If False it won't add an SBAS for the last year
+        if check_available_acquisitions(
+            dic, start_yr, end_yr
+        ):  # If False it won't add an SBAS for this particular year
             opts = asf.ASFSearchOptions(
                 **{'start': start_yr, 'end': end_yr, 'season': pm.get_julian_season(tuple(season[season_yr]))}
             )
