@@ -264,7 +264,10 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
         resolution = mbs_dic[mb_id]['resolution']
         refs, secs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
 
+        if len(refs) == 0:
+            continue
         insar_jobs += pairs.prepare_multiburst_jobs(refs, secs, mb_id, looks=resolution, apply_water_mask=True)
+        log.log(logging.DEBUG, f'{len(insar_jobs)} jobs for {mb_id}')
 
     return insar_jobs
 
