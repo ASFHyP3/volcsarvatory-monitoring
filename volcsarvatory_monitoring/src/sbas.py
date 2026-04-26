@@ -77,6 +77,30 @@ def get_season(dic: dict) -> tuple[tuple[datetime, datetime], datetime]:
     return season, target
 
 
+def check_available_acquisitions(
+    dic: dict,
+    start: str,
+    end: str,
+) -> bool:
+    """Check if there are acquisitions for a particular multiburst set.
+
+    Args:
+        dic: Dictionary with the multiburst set.
+        start: Start date for the SBAS.
+        end: End date for the SBAS.
+
+    Returns:
+        check: True if there are acquisitions for all the bursts, False otherwise
+    """
+    for frame in dic.keys():
+        for swath in dic[frame]:
+            bid = f'{frame}_{swath}'
+            res = asf.search(fullBurstID=bid, start=start, end=end, polarization=asf.POLARIZATION.VV)
+            if len(res) == 0:
+                return False  # No images in the last year
+    return True
+
+
 def build_sbas_pairs_default(
     dic: dict,
     start: str,
@@ -122,18 +146,8 @@ def build_sbas_pairs_default(
 
     start_last = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     end_last = datetime.now().strftime('%Y-%m-%d')
-    add_sbas = True  # If False it won't add an SBAS for the last year
-    for frame in dic.keys():
-        for swath in dic[frame]:
-            bid = f'{frame}_{swath}'
-            res = asf.search(fullBurstID=bid, start=start_last, end=end_last, polarization=asf.POLARIZATION.VV)
-            if len(res) == 0:
-                add_sbas = False  # No images in the last year
-                break
-        if not add_sbas:
-            break
 
-    if add_sbas:
+    if check_available_acquisitions(dic, start_last, end_last):  # If False it won't add an SBAS for the last year
         season = ('1-1', '12-31')
         opts = asf.ASFSearchOptions(
             **{
@@ -235,20 +249,21 @@ def build_sbas_pairs_custom(
 
         if start_yr < start:
             start_yr = start
-        opts = asf.ASFSearchOptions(
-            **{'start': start_yr, 'end': end_yr, 'season': pm.get_julian_season(tuple(season[season_yr]))}
-        )
-        network_yr = asf.Network(
-            multiburst=multiburst,
-            perp_baseline=800,
-            inseason_temporal_baseline=tbaseline,
-            bridge_target_date=target,
-            opts=opts,
-        )
-        pairs = [key for key in network_yr.subset_stack.keys()]
-        network.add_pairs(pairs)
-        for d in network.additional_multiburst_networks:
-            d.add_pairs(pairs)
+        if check_available_acquisitions(dic, start_yr, end_yr):  # If False it won't add an SBAS for the last year
+            opts = asf.ASFSearchOptions(
+                **{'start': start_yr, 'end': end_yr, 'season': pm.get_julian_season(tuple(season[season_yr]))}
+            )
+            network_yr = asf.Network(
+                multiburst=multiburst,
+                perp_baseline=800,
+                inseason_temporal_baseline=tbaseline,
+                bridge_target_date=target,
+                opts=opts,
+            )
+            pairs = [key for key in network_yr.subset_stack.keys()]
+            network.add_pairs(pairs)
+            for d in network.additional_multiburst_networks:
+                d.add_pairs(pairs)
 
     # Connects network seasons
     network.connect_components(multiyear_temporal_baseline=tbaseline)

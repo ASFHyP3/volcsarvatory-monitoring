@@ -82,6 +82,10 @@ def submit_split_jobs(jobs: list[dict]) -> list[dict]:
             fin = batch * 100 + len(jobs) % 100
         else:
             fin = (batch + 1) * 100
-        sub_jobs += hyp3.submit_prepared_jobs(jobs[ini:fin])
+        try:
+            sub_jobs += hyp3.submit_prepared_jobs(jobs[ini:fin])
+        except sdk.exceptions.HyP3Error:
+            example = jobs[int((ini + fin) / 2)]  # Job example
+            raise ValueError(f'This type of job failed {example}')
 
     return sub_jobs
