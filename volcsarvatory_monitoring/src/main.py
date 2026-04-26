@@ -287,8 +287,6 @@ def lambda_bucket_handler(event: dict, context: object) -> dict:
                         pass
                     else:
                         submit_timeseries([mbid])
-            product = get_product(message)
-            transfer_file(product)
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
