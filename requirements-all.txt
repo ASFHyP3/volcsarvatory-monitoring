@@ -1,6 +1,6 @@
 -r requirements-volcsarvatory_monitoring.txt
 cfn-lint==1.49.3
-ruff==0.15.11
+ruff==0.15.12
 moto==5.1.22
 mypy==1.20.2
 pytest==9.0.3
