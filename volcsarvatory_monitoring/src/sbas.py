@@ -77,6 +77,31 @@ def get_season(dic: dict) -> tuple[tuple[datetime, datetime], datetime]:
     return season, target
 
 
+def get_pairs_dict(network: asf.Network) -> dict[str, dict]:
+    """Creates a dictionary with the multiburst sets for each pair date in the network.
+
+    Args:
+        network: Network with SBAS
+
+    Returns:
+        pairs: Dictionary where the keys are the pair dates and the elements are the reference and secondary bursts
+    """
+    dpairs: dict[str, dict] = dict()
+
+    for key in max(network.connected_substacks, key=len).keys():
+        ref_date = key[0].strftime('%Y%m%d')
+        sec_date = key[1].strftime('%Y%m%d')
+        skey = f'{ref_date}_{sec_date}'
+        dpairs[skey] = dict()
+        dpairs[skey]['refs'] = []
+        dpairs[skey]['secs'] = []
+        for add in network.additional_multiburst_networks:
+            stack = max(add.connected_substacks, key=len)
+            dpairs[skey]['refs'].append(stack[key].ref.properties['sceneName'])
+            dpairs[skey]['secs'].append(stack[key].sec.properties['sceneName'])
+    return dpairs
+
+
 def check_available_acquisitions(
     dic: dict,
     start: str,
@@ -108,7 +133,7 @@ def build_sbas_pairs_default(
     tbaseline: int,
     target: str,
     bridge: int,
-) -> tuple[list, list]:
+) -> dict[str, dict]:
     """Calculates a default sbas pairs for a multiburst set. The result is the merge of a seasonal sbas and all possible pairs for the current year.
 
     Args:
@@ -120,8 +145,7 @@ def build_sbas_pairs_default(
         bridge: Number of years to bridge.
 
     Returns:
-        refs: Scene names for the reference acqusitions.
-        secs: Scene names for the secondary acqusitions.
+        pairs: Dictionary with the reference and secondary acquisitions.
     """
     multiburst = asf.MultiBurst(dic)
     opts = asf.ASFSearchOptions(
@@ -142,7 +166,7 @@ def build_sbas_pairs_default(
     except Exception:
         pass
 
-    refs, secs = network.get_multi_burst_pair_ids()
+    pairs = get_pairs_dict(network)
 
     start_last = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     end_last = datetime.now().strftime('%Y-%m-%d')
@@ -170,16 +194,12 @@ def build_sbas_pairs_default(
         except Exception:
             pass
 
-        refs_add, secs_add = network.get_multi_burst_pair_ids()
+        pairs_add = get_pairs_dict(network)
 
-        pairs = list_pair_dates(refs, secs)
-        pairs_add = list_pair_dates(refs_add, secs_add)
-
-        for i, pair in enumerate(pairs_add):
-            if pair not in pairs:
-                refs.append(refs_add[i])
-                secs.append(secs_add[i])
-    return refs, secs
+        for i, pair in enumerate(pairs_add.keys()):
+            if pair not in pairs.keys():
+                pairs[pair] = pairs_add[pair]
+    return pairs
 
 
 def build_sbas_pairs_custom(
@@ -189,7 +209,7 @@ def build_sbas_pairs_custom(
     tbaseline: int,
     target: str,
     bridge: int,
-) -> tuple[list, list]:
+) -> dict[str, dict]:
     """Calculates an sbas for a multiburst set. It uses the seasons specified by the user.
 
     Args:
@@ -201,8 +221,7 @@ def build_sbas_pairs_custom(
         bridge: Number of years to bridge.
 
     Returns:
-        refs: Scene names for the reference acqusitions.
-        secs: Scene names for the secondary acqusitions.
+        dpairs: Dictionary with the reference and secondary acquisitions.
     """
     years = [int(year) for year in season.keys()]
 
@@ -262,16 +281,16 @@ def build_sbas_pairs_custom(
                 bridge_target_date=target,
                 opts=opts,
             )
-            pairs = [key for key in network_yr.subset_stack.keys()]
-            network.add_pairs(pairs)
+            pairs_yr = [key for key in network_yr.subset_stack.keys()]
+            network.add_pairs(pairs_yr)
             for d in network.additional_multiburst_networks:
-                d.add_pairs(pairs)
+                d.add_pairs(pairs_yr)
 
     # Connects network seasons
     network.connect_components(multiyear_temporal_baseline=tbaseline)
-    refs, secs = network.get_multi_burst_pair_ids()
+    dpairs = get_pairs_dict(network)
 
-    return refs, secs
+    return dpairs
 
 
 def get_sbas_pairs(
@@ -280,7 +299,7 @@ def get_sbas_pairs(
     season: dict | tuple[str, str] | None = None,
     target: str | None = None,
     bridge: int | None = None,
-) -> tuple[list, list]:
+) -> dict[str, dict]:
     """Calculates the sbas pairs for a multiburst set.
 
     Args:
@@ -291,8 +310,7 @@ def get_sbas_pairs(
         bridge: Number of years to bridge.
 
     Returns:
-        refs: Scene names for the reference acqusitions.
-        secs: Scene names for the secondary acqusitions.
+        pairs: Dictionary with the reference and secondary acquisitions.
     """
     if isinstance(season, tuple):
         if float(season[0].replace('-', '.')) > float(season[1].replace('-', '.')):
@@ -326,11 +344,11 @@ def get_sbas_pairs(
         bridge = 1
 
     if isinstance(season, tuple):
-        refs, secs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
+        pairs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
     elif isinstance(season, dict):
-        refs, secs = build_sbas_pairs_custom(dic, start, season, tbaseline, target, bridge)
+        pairs = build_sbas_pairs_custom(dic, start, season, tbaseline, target, bridge)
 
-    return refs, secs
+    return pairs
 
 
 def list_pair_dates(refs: list[str], secs: list[str]) -> list:

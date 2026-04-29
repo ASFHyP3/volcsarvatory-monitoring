@@ -22,7 +22,7 @@ def test_get_mbid():
 
     mb_id = s1burst.get_mbid(mb_dic, resolution='5x1')
 
-    assert mb_id == '000_000001s1n04_000002s2n02_000003s3n01_INT05'
+    assert mb_id == '000_000001s1n04_000002s2n02_000003s3n01_INT20'
 
 
 @responses.activate
@@ -131,28 +131,34 @@ def test_deduplicate_pairs(mock_sbas_pairs, mock_s3_objects) -> None:
     resolution = '20x4'
     mb_id = s1burst.get_mbid(mb_dic, resolution=resolution)
 
-    refs = [
+    pairs: dict[str, dict] = dict()
+    pairs['00000000_00000001'] = dict()
+    pairs['00000000_00000001']['refs'] = [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',
-        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000000T000000_VV_0001-BURST',
+    ]
+    pairs['00000000_00000001']['secs'] = [
+        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
     ]
-
-    secs = [
+    pairs['00000001_00000003'] = dict()
+    pairs['00000001_00000003']['refs'] = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
-        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
+    ]
+    pairs['00000001_00000003']['secs'] = [
+        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
         'S1_000002_IW1_00000003T000000_VV_0001-BURST',
     ]
+
     list_objs = [
         f'multiburst_products/{mb_id}/S1_{"-".join(mb_id.split("_")[0:-1])}_IW_00000000_00000001_VV_INT80_0000.zip'
     ]
     mock_s3_objects.return_value = list_objs
 
-    mock_sbas_pairs.return_value = (refs, secs)
+    mock_sbas_pairs.return_value = pairs
 
-    refs_out, secs_out = s1burst.deduplicate_pairs(mb_dic, resolution, None, None, None, None)
-    print(refs_out)
+    pairs_out = s1burst.deduplicate_pairs(mb_dic, resolution, None, None, None, None)
     refs_exp = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
@@ -163,8 +169,9 @@ def test_deduplicate_pairs(mock_sbas_pairs, mock_s3_objects) -> None:
         'S1_000002_IW1_00000003T000000_VV_0001-BURST',
     ]
 
-    assert refs_out == refs_exp
-    assert secs_out == secs_exp
+    assert '00000001_00000003' in pairs_out.keys()
+    assert pairs_out['00000001_00000003']['refs'] == refs_exp
+    assert pairs_out['00000001_00000003']['secs'] == secs_exp
 
 
 @patch('s1burst.deduplicate_pairs')
@@ -184,21 +191,27 @@ def test_prepare_pairs(mock_deduplicate) -> None:
 
     mb_ids = [key for key in mb_dic.keys()]
 
-    refs = [
+    pairs: dict[str, dict] = dict()
+    pairs['00000000_00000001'] = dict()
+    pairs['00000000_00000001']['refs'] = [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',
-        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000000T000000_VV_0001-BURST',
+    ]
+    pairs['00000000_00000001']['secs'] = [
+        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
     ]
-
-    secs = [
+    pairs['00000001_00000003'] = dict()
+    pairs['00000001_00000003']['refs'] = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
-        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
+    ]
+    pairs['00000001_00000003']['secs'] = [
+        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
         'S1_000002_IW1_00000003T000000_VV_0001-BURST',
     ]
 
-    mock_deduplicate.return_value = (refs, secs)
+    mock_deduplicate.return_value = pairs
 
     jobs = s1burst.prepare_pairs(mb_ids)
 
