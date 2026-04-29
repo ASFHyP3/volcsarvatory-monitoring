@@ -130,9 +130,9 @@ def list_pairs_s3(mb_id: str) -> list[str]:
     prefix = f'multiburst_products/{mb_id}'
     keys = list_s3_objects(prefix)
     keys = [key.split('IW')[1] for key in keys]
-    pairs = ['_'.join(key.split('_')[1:3]) for key in keys]
+    lpairs = ['_'.join(key.split('_')[1:3]) for key in keys]
 
-    return pairs
+    return lpairs
 
 
 def get_mbid(dic: dict, resolution: str | None) -> str:
@@ -156,7 +156,9 @@ def get_mbid(dic: dict, resolution: str | None) -> str:
     if resolution is None:
         res = '80'
     else:
-        res = str(int(int(resolution.split('x')[0]) * int(resolution.split('x')[1]))).zfill(2)
+        range_looks = int(resolution.split('x')[0])
+        azimuth_looks = int(resolution.split('x')[1])
+        res = str(max(range_looks, azimuth_looks * 5) * 4).zfill(2)
     if len(iw1s) > 0:
         iw1 = str(min(iw1s)).zfill(6)
     if len(iw2s) > 0:
@@ -199,7 +201,7 @@ def deduplicate_pairs(
     season: tuple[str, str] | None,
     target: str | None,
     bridge: int | None,
-) -> tuple[list[str], list[str]]:
+) -> dict[str, dict]:
     """Deduplicates the pairs that have been already archived in the s3 bucket.
 
     Args:
@@ -211,20 +213,17 @@ def deduplicate_pairs(
         bridge: Number of years to bridge.
 
     Returns:
-        refs: Deduplicated reference scenes.
-        secs: Deduplicated secondary scenes.
+        pairs: Dictionary with reference and secondary acquisitions.
     """
-    refs, secs = [], []
-    refst, secst = sbas.get_sbas_pairs(multiburst_dict, tbaseline, season, target, bridge)
+    dpairs = dict()
+    pairst = sbas.get_sbas_pairs(multiburst_dict, tbaseline, season, target, bridge)
     mb_id = get_mbid(multiburst_dict, resolution)
-    pairst = sbas.list_pair_dates(refst, secst)
     bucket_pairs = list_pairs_s3(mb_id)
-    for i, pair in enumerate(pairst):
+    for i, pair in enumerate(pairst.keys()):
         if pair not in bucket_pairs:
-            refs.append(refst[i])
-            secs.append(secst[i])
+            dpairs[pair] = pairst[pair]
 
-    return refs, secs
+    return dpairs
 
 
 def submit_pairs_burst(burst_id: str) -> list[dict]:
@@ -262,11 +261,11 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
         target = mbs_dic[mb_id]['target_date']
         bridge = mbs_dic[mb_id]['bridge_years']
         resolution = mbs_dic[mb_id]['resolution']
-        refs, secs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
+        dpairs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
 
-        if len(refs) == 0:
+        if len(list(dpairs.keys())) == 0:
             continue
-        insar_jobs += pairs.prepare_multiburst_jobs(refs, secs, mb_id, looks=resolution, apply_water_mask=True)
+        insar_jobs += pairs.prepare_multiburst_jobs(dpairs, mb_id, looks=resolution, apply_water_mask=True)
         log.log(logging.DEBUG, f'{len(insar_jobs)} jobs for {mb_id}')
 
     return insar_jobs

@@ -64,8 +64,7 @@ def get_coherence(multiburst_dict: dict, num: int = 1) -> dict:
 
 
 def prepare_multiburst_jobs(
-    refs: list[str],
-    secs: list[str],
+    pairs: dict,
     project_name: str,
     looks: str | None = None,
     apply_water_mask: bool = True,
@@ -73,8 +72,7 @@ def prepare_multiburst_jobs(
     """Prepares the multiburst jobs from the pairs returned by an SBAS network.
 
     Args:
-        refs: Reference scene ids.
-        secs: Secondary scene ids.
+        pairs: Dictionary with the reference and secondary acquisitions.
         hyp3: Instance of HyP3 where the user has been logged in.
         project_name: Name of the project in HyP3.
         looks: Multilooking in the final products.
@@ -83,20 +81,15 @@ def prepare_multiburst_jobs(
     Returns:
         insar_jobs: List with prepared jobs for HyP3
     """
-    insar_jobs = []
-    bursts = [ref[0:13] for ref in refs]
-    ubursts = list(set(bursts))
-    lenburst = int(len(refs) / len(ubursts))
     if looks is None:
         looks = '20x4'
 
-    for i in range(lenburst):
+    insar_jobs = []
+    for pair in pairs.keys():
         prepared_job: dict = deepcopy(MULTIBURST_JOB_TEMPLATE)
-        ref = [refs[i + j * lenburst] for j in range(len(ubursts))]
-        sec = [secs[i + j * lenburst] for j in range(len(ubursts))]
         prepared_job['name'] = project_name
-        prepared_job['job_parameters']['reference'] = ref
-        prepared_job['job_parameters']['secondary'] = sec
+        prepared_job['job_parameters']['reference'] = pairs[pair]['refs']
+        prepared_job['job_parameters']['secondary'] = pairs[pair]['secs']
         prepared_job['job_parameters']['looks'] = looks
         prepared_job['job_parameters']['apply_water_mask'] = apply_water_mask
         insar_jobs.append(prepared_job)

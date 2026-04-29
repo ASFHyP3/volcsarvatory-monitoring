@@ -28,20 +28,26 @@ def test_get_coherence(mock_asf_search, mock_pair, asf_product_factory, asf_stac
 
 
 def test_prepare_multiburst_jobs() -> None:
-    refs = [
+    dpairs: dict[str, dict] = dict()
+    dpairs['00000000_00000001'] = dict()
+    dpairs['00000000_00000001']['refs'] = [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',
-        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000000T000000_VV_0001-BURST',
+    ]
+    dpairs['00000000_00000001']['secs'] = [
+        'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
     ]
-
-    secs = [
+    dpairs['00000001_00000003'] = dict()
+    dpairs['00000001_00000003']['refs'] = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
-        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
+    ]
+    dpairs['00000001_00000003']['secs'] = [
+        'S1_000001_IW1_00000003T000000_VV_0001-BURST',
         'S1_000002_IW1_00000003T000000_VV_0001-BURST',
     ]
-    jobs = pairs.prepare_multiburst_jobs(refs, secs, 'test job')
+    jobs = pairs.prepare_multiburst_jobs(dpairs, 'test job')
 
     assert len(jobs) == 2
     assert len(jobs[0]['job_parameters']['reference']) == 2
