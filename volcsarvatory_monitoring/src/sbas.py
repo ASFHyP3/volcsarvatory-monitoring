@@ -87,14 +87,14 @@ def get_pairs_dict(network: asf.Network) -> dict[str, dict]:
         pairs: Dictionary where the keys are the pair dates and the elements are the reference and secondary bursts
     """
     dpairs: dict[str, dict] = dict()
-
+    first_stack = max(network.connected_substacks, key=len)
     for key in max(network.connected_substacks, key=len).keys():
         ref_date = key[0].strftime('%Y%m%d')
         sec_date = key[1].strftime('%Y%m%d')
         skey = f'{ref_date}_{sec_date}'
         dpairs[skey] = dict()
-        dpairs[skey]['refs'] = []
-        dpairs[skey]['secs'] = []
+        dpairs[skey]['refs'] = [first_stack[key].ref.properties['sceneName']]
+        dpairs[skey]['secs'] = [first_stack[key].sec.properties['sceneName']]
         for add in network.additional_multiburst_networks:
             stack = max(add.connected_substacks, key=len)
             dpairs[skey]['refs'].append(stack[key].ref.properties['sceneName'])

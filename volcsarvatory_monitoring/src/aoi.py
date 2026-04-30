@@ -99,14 +99,16 @@ def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dic
         aoi_gdf = aoi_gdf[aoi_gdf['name'] == aoi_id]
     bursts_gdf = gpd.sjoin(s1_gdf, aoi_gdf, how='inner', predicate='intersects')
     intersection = gpd.overlay(s1_gdf, aoi_gdf, how='intersection')
+    aoi_utm = gpd.sjoin(aoi_gdf, s1_gdf, how='inner', predicate='intersects')
 
     utmgdf = aoi_gdf.estimate_utm_crs()
     crs = utmgdf._crs.to_epsg()
+    aoi_utm = aoi_utm.to_crs(epsg=crs)
     bursts_utm = bursts_gdf.to_crs(epsg=crs)
     intersection_utm = intersection.to_crs(epsg=crs)
 
-    bursts_gdf['area'] = intersection_utm.area.to_numpy() / bursts_utm.area.to_numpy()
-    bursts_gdf = bursts_gdf[bursts_gdf['area'] > 0.05]
+    bursts_gdf['area'] = intersection_utm.area.to_numpy() / aoi_utm.area.to_numpy()
+    bursts_gdf = bursts_gdf[bursts_gdf['area'] > 0.3]
     result = dict()
     for bid in bursts_gdf['id'].unique():
         asf_res = asf.search(fullBurstID=bid)
