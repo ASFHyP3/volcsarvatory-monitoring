@@ -104,7 +104,6 @@ def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dic
     utmgdf = aoi_gdf.estimate_utm_crs()
     crs = utmgdf._crs.to_epsg()
     aoi_utm = aoi_utm.to_crs(epsg=crs)
-    bursts_utm = bursts_gdf.to_crs(epsg=crs)
     intersection_utm = intersection.to_crs(epsg=crs)
 
     bursts_gdf['area'] = intersection_utm.area.to_numpy() / aoi_utm.area.to_numpy()
