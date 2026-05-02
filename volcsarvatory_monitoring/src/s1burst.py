@@ -85,6 +85,7 @@ def get_multibursts(aois: dict, id: str) -> dict:
     for multiburst in multibursts:
         dic = multiburst.multiburst_dict
         mb_id = get_mbid(dic, resolution)
+        mb_id = f'S1_{id}_{mb_id}'
         mb_dic[mb_id] = dict()
         mb_dic[mb_id]['mb_set'] = dic
         mb_dic[mb_id]['temporal_baseline'] = aois[id]['temporal_baseline']
@@ -127,7 +128,12 @@ def list_pairs_s3(mb_id: str) -> list[str]:
     Returns:
         pairs: List of strings with pair dates.
     """
-    prefix = f'multiburst_products/{mb_id}'
+    prefix = 'multiburst_products'
+    keys = list_s3_objects(prefix)
+    paths = [key for key in keys if mb_id in key]
+    if len(paths) == 0:
+        return []
+    prefix = '/'.join(paths[0].split('/')[0:-1])
     keys = list_s3_objects(prefix)
     keys = [key.split('IW')[1] for key in keys]
     lpairs = ['_'.join(key.split('_')[1:3]) for key in keys]
