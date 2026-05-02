@@ -8,25 +8,30 @@ import pairs
 import prepare_multibursts as pm
 
 
-def first_date_burst(burst_id: str) -> str:
+def first_date_burst(burst_id: str, start: str | None = None) -> str:
     """Finds the first date for a given burst ID.
 
     Args:
         burst_id: ID for the burst.
+        start: Start date of the Stack.
 
     Returns:
         date: String with the date of the first acquisition.
     """
-    results = asf.search(fullBurstID=burst_id)
+    if start is not None:
+        results = asf.search(fullBurstID=burst_id, start=start, polarization=asf.POLARIZATION.VV)
+    else:
+        results = asf.search(fullBurstID=burst_id, polarization=asf.POLARIZATION.VV)
     dates = sorted([r.properties['stopTime'] for r in results if r.properties['stopTime'] is not None])
     return dates[0].split('T')[0]
 
 
-def first_date_multiburst(dic: dict) -> str:
+def first_date_multiburst(dic: dict, start: str | None = None) -> str:
     """Finds the first date for a multiburst set.
 
     Args:
         dic: Dictionary with the mutliburst set.
+        start: Start date of the Stack.
 
     Returns:
         date: String with the date of the first acquisition.
@@ -34,7 +39,10 @@ def first_date_multiburst(dic: dict) -> str:
     keys = [key for key in dic.keys()]
     burst_id = keys[0] + '_' + dic[keys[0]][0]
 
-    return first_date_burst(burst_id)
+    if start is not None:
+        return first_date_burst(burst_id, start)
+    else:
+        return first_date_burst(burst_id)
 
 
 def get_season(dic: dict) -> tuple[tuple[datetime, datetime], datetime]:
@@ -233,6 +241,8 @@ def build_sbas_pairs_custom(
 
     start_tmp = f'{str(min(years))}-{month_start.zfill(2)}-{day_start.zfill(2)}'
     end_tmp = f'{str(max(years))}-{month_end.zfill(2)}-{day_end.zfill(2)}'
+
+    start = first_date_multiburst(dic, start_tmp)
 
     seasons = [float(season[year][0].replace('-', '.')) for year in season.keys()]
     seasons += [float(season[year][1].replace('-', '.')) for year in season.keys()]

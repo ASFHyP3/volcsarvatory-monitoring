@@ -50,7 +50,7 @@ def test_get_multibursts(mock_burst_ids):
     }
 
     mb_dic = s1burst.get_multibursts(aoi_dic, 'test')
-    key = '000_000001s1n01_000000s2n00_000000s3n00_INT80'
+    key = 'S1_test_000_000001s1n01_000000s2n00_000000s3n00_INT80'
 
     assert key in mb_dic.keys()
     assert 'mb_set' in mb_dic[key].keys()
