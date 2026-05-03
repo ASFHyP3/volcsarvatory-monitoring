@@ -96,5 +96,6 @@ def prepare_multiburst_jobs(
 
     for job in insar_jobs:
         job['job_parameters']['publish_bucket'] = os.environ.get('PUBLISH_BUCKET')
+        job['job_parameters']['publish_prefix'] = f'multiburst_products/{project_name}'
 
     return insar_jobs
