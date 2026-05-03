@@ -54,7 +54,6 @@ runs:
             PublishBucket=${{ inputs.PUBLISH_BUCKET }} \
             EcrImageUri=${{ inputs.ECR_IMAGE_URI }}
     - name: Publish
-      if: ${{ github.ref_name == 'develop' }}
       shell: bash
       run: |
         aws sns publish \
