@@ -36,6 +36,21 @@ def get_burst_id(scene: str) -> str:
     return results[0].properties['burst']['fullBurstID']
 
 
+def check_id(product_id: str) -> bool:
+    """Check if the ID qualifies for processing.
+
+    Args:
+        product_id: ID for a S1 product.
+
+    Returns:
+        qualifies: The product ID corresponds to a S1 burst.
+    """
+    if product_id.startswith('S1_') and 'BURST' in product_id:
+        if '_VV_' in product_id or '_HH_' in product_id:
+            return True
+    return False
+
+
 def product_id_from_message(message: dict) -> str:
     """Return a scene product ID from an SQS message.
 
@@ -47,7 +62,7 @@ def product_id_from_message(message: dict) -> str:
     """
     # See `tests/integration/*-valid.json` for example messages
     match message:
-        case {'granule_ur': product_id} if product_id.startswith('S1'):
+        case {'granule_ur': product_id} if check_id(product_id):
             return product_id
         case _:
             raise ValueError(f'Unable to determine product ID from message {message}')
