@@ -267,7 +267,8 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 message = json.loads(message)
                 mb_id = product_mbid_from_message(message)
                 jobs = prepare_pairs([mb_id])
-                _ = submit_jobs(jobs)
+                if len(jobs) == 0:
+                    _ = submit_jobs(jobs)
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})

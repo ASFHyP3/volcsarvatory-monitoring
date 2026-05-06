@@ -297,7 +297,10 @@ def build_sbas_pairs_custom(
                 d.add_pairs(pairs_yr)
 
     # Connects network seasons
-    network.connect_components(multiyear_temporal_baseline=tbaseline)
+    try:
+        network.connect_components(multiyear_temporal_baseline=tbaseline)
+    except Exception:
+        pass
     dpairs = get_pairs_dict(network)
 
     return dpairs
