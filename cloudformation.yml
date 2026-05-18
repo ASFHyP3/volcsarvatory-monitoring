@@ -1,0 +1,409 @@
+Parameters:
+  Sentinel1TopicArn:
+    Type: String
+
+  AOITopicArn:
+    Type: String
+
+  BucketTopicArn:
+    Type: String
+
+  Hyp3Api:
+    Type: String
+
+  Hyp3JobsTable:
+    Type: String
+
+  LambdaLoggingLevel:
+    Type: String
+    Default: INFO
+    AllowedValues:
+      - INFO
+      - DEBUG
+
+  EarthdataUsername:
+    Type: String
+
+  EarthdataPassword:
+    Type: String
+    NoEcho: true
+
+  PublishBucket:
+    Type: String
+    AllowedValues:
+      - volcsarvatory-data
+      - volcsarvatory-data-test
+
+  EcrImageUri:
+    Description: ECR image URI
+    Type: String
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 28800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt Queue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: [!Ref Sentinel1TopicArn]
+      Queues:
+        - !Ref Queue
+
+  QueueAOI:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 28800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  QueueAOIPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt QueueAOI.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: [!Ref AOITopicArn]
+      Queues:
+        - !Ref QueueAOI
+
+  QueueBucket:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 28800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  QueueBucketPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt QueueBucket.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: [!Ref BucketTopicArn]
+      Queues:
+        - !Ref QueueBucket
+
+  AOISubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AOITopicArn
+      Protocol: sqs
+      Endpoint: !GetAtt QueueAOI.Arn
+
+  BucketSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref BucketTopicArn
+      Protocol: sqs
+      Endpoint: !GetAtt QueueBucket.Arn
+
+  Sentinel1Subscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref Sentinel1TopicArn
+      Protocol: sqs
+      Endpoint: !GetAtt Queue.Arn
+      FilterPolicyScope: MessageBody
+      FilterPolicy:
+        granule_ur:
+          - suffix: '-BURST'
+
+  LambdaAOI:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.lambda_aoi_handler
+      Code:
+        ImageUri: !Ref EcrImageUri
+      Role: !GetAtt LambdaAOIRole.Arn
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          HYP3_API: !Ref Hyp3Api
+          JOBS_TABLE_NAME: !Ref Hyp3JobsTable
+          LOGGING_LEVEL: !Ref LambdaLoggingLevel
+          EARTHDATA_USERNAME: !Ref EarthdataUsername
+          EARTHDATA_PASSWORD: !Ref EarthdataPassword
+          PUBLISH_BUCKET: !Ref PublishBucket
+          AOI_TOPIC_ARN: !Ref AOITopicArn
+
+  LambdaAOIEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref LambdaAOI
+      BatchSize: 1
+      EventSourceArn: !GetAtt QueueAOI.Arn
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      ScalingConfig:
+        MaximumConcurrency: 100
+
+  LambdaAOILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaAOI}"
+      RetentionInDays: 90
+
+  LambdaAOIRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      ManagedPolicyArns:
+        - !Ref LambdaAOIPolicy
+
+  LambdaAOIPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+          - Effect: Allow
+            Action: sqs:*
+            Resource: !GetAtt QueueAOI.Arn
+          - Effect: Allow
+            Action: dynamodb:Query
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"
+          - Effect: Allow
+            Action: sns:Publish
+            Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*"
+          - Effect: Allow
+            Action:
+              - s3:List*
+              - s3:Get*
+            Resource:
+              - !Sub "arn:aws:s3:::${PublishBucket}/*"
+              - !Sub "arn:aws:s3:::${PublishBucket}"
+          - Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetAuthorizationToken
+              - ecr:GetDownloadUrlForLayer
+            Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/*"
+
+  LambdaMintpy:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.lambda_bucket_handler
+      Code:
+        ImageUri: !Ref EcrImageUri
+      Role: !GetAtt LambdaMintpyRole.Arn
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          HYP3_API: !Ref Hyp3Api
+          JOBS_TABLE_NAME: !Ref Hyp3JobsTable
+          LOGGING_LEVEL: !Ref LambdaLoggingLevel
+          EARTHDATA_USERNAME: !Ref EarthdataUsername
+          EARTHDATA_PASSWORD: !Ref EarthdataPassword
+          PUBLISH_BUCKET: !Ref PublishBucket
+
+  LambdaMintpyEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref LambdaMintpy
+      BatchSize: 1
+      EventSourceArn: !GetAtt QueueBucket.Arn
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      ScalingConfig:
+        MaximumConcurrency: 100
+
+  LambdaMintpyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaMintpy}"
+      RetentionInDays: 90
+
+  LambdaMintpyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      ManagedPolicyArns:
+        - !Ref LambdaMintpyPolicy
+
+  LambdaMintpyPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+          - Effect: Allow
+            Action: sqs:*
+            Resource: !GetAtt QueueBucket.Arn
+          - Effect: Allow
+            Action: dynamodb:Query
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+          - Effect: Allow
+            Action:
+              - s3:List*
+              - s3:Get*
+            Resource:
+              - !Sub "arn:aws:s3:::${PublishBucket}/*"
+              - !Sub "arn:aws:s3:::${PublishBucket}"
+          - Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetAuthorizationToken
+              - ecr:GetDownloadUrlForLayer
+            Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/*"
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.lambda_handler
+      Code:
+        ImageUri: !Ref EcrImageUri
+      Role: !GetAtt LambdaRole.Arn
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          HYP3_API: !Ref Hyp3Api
+          JOBS_TABLE_NAME: !Ref Hyp3JobsTable
+          LOGGING_LEVEL: !Ref LambdaLoggingLevel
+          EARTHDATA_USERNAME: !Ref EarthdataUsername
+          EARTHDATA_PASSWORD: !Ref EarthdataPassword
+          PUBLISH_BUCKET: !Ref PublishBucket
+
+  LambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref Lambda
+      BatchSize: 1
+      EventSourceArn: !GetAtt Queue.Arn
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      ScalingConfig:
+        MaximumConcurrency: 100
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Lambda}"
+      RetentionInDays: 90
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      ManagedPolicyArns:
+        - !Ref LambdaPolicy
+
+  LambdaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+          - Effect: Allow
+            Action: sqs:*
+            Resource: !GetAtt Queue.Arn
+          - Effect: Allow
+            Action: dynamodb:Query
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Hyp3JobsTable}*"
+          - Effect: Allow
+            Action:
+              - s3:List*
+              - s3:Get*
+            Resource:
+              - !Sub "arn:aws:s3:::${PublishBucket}/*"
+              - !Sub "arn:aws:s3:::${PublishBucket}"
+          - Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetAuthorizationToken
+              - ecr:GetDownloadUrlForLayer
+            Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/*"
+
+Outputs:
+  VolcsarvatoryMonitoringQueueArn:
+    Description: "The ARN for volcsarvatory-monitoring's SQS queue"
+    Value: !GetAtt Queue.Arn

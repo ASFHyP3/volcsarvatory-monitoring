@@ -1,0 +1,61 @@
+name: Deploy VOLCSARVATORY Monitoring
+description: Deploy the VOLCSARVATORY Monitoring system
+
+inputs:
+  STACK_NAME:
+    required: true
+  CF_TEMPLATE_BUCKET:
+    required: true
+  AOI_TOPIC_ARN:
+    required: true
+  BUCKET_TOPIC_ARN:
+    required: true
+  SENTINEL1_TOPIC_ARN:
+    required: true
+  HYP3_API:
+    required: true
+  HYP3_JOBS_TABLE:
+    required: true
+  LAMBDA_LOGGING_LEVEL:
+    required: true
+  EARTHDATA_USERNAME:
+    required: true
+  EARTHDATA_PASSWORD:
+    required: true
+  PUBLISH_BUCKET:
+    required: true
+  ECR_IMAGE_URI:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Package and deploy
+      shell: bash
+      run: |
+        aws cloudformation package \
+          --template-file cloudformation.yml \
+          --s3-bucket=${{ inputs.CF_TEMPLATE_BUCKET }} \
+          --output-template-file packaged.yml
+
+        aws cloudformation deploy \
+          --template-file packaged.yml \
+          --stack-name=${{ inputs.STACK_NAME }} \
+          --capabilities CAPABILITY_IAM \
+          --parameter-overrides \
+            Sentinel1TopicArn=${{ inputs.SENTINEL1_TOPIC_ARN }} \
+            AOITopicArn=${{ inputs.AOI_TOPIC_ARN }} \
+            BucketTopicArn=${{ inputs.BUCKET_TOPIC_ARN }} \
+            Hyp3Api=${{ inputs.HYP3_API }} \
+            Hyp3JobsTable=${{ inputs.HYP3_JOBS_TABLE }} \
+            LambdaLoggingLevel=${{ inputs.LAMBDA_LOGGING_LEVEL }} \
+            EarthdataUsername=${{ inputs.EARTHDATA_USERNAME }} \
+            EarthdataPassword=${{ inputs.EARTHDATA_PASSWORD }} \
+            PublishBucket=${{ inputs.PUBLISH_BUCKET }} \
+            EcrImageUri=${{ inputs.ECR_IMAGE_URI }}
+    - name: Publish
+      shell: bash
+      run: |
+        aws sns publish \
+          --topic-arn ${{ inputs.AOI_TOPIC_ARN }} \
+          --message "New AOI"

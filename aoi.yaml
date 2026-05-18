@@ -1,0 +1,85 @@
+GSitkin:
+  AOI:
+  - -176.25
+  - -175.92
+  - 51.95
+  - 52.14
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Veniaminof:
+  AOI:
+  - -159.42
+  - -159.29
+  - 56.14
+  - 56.23
+  temporal_baseline: 12
+  season:
+    2025:
+    - '1-1' 
+    - '12-31'
+    2026:
+    - '1-1' 
+    - '12-31'  
+  target_date: '3-15'
+  bridge_years:
+  resolution: '5x1'
+Okmok:
+  AOI:
+  - -168.5
+  - -167.75
+  - 53.15
+  - 53.6
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Kilauea:
+  AOI:
+  - -156.1
+  - -154.7
+  - 18.7
+  - 20.4
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Holuhraun:
+  AOI:
+  - -16.87
+  - -16.5
+  - 64.85
+  - 64.94
+  temporal_baseline:
+  season:
+    2014: 
+    - '1-1' 
+    - '12-31'
+    2015:
+    - '1-1' 
+    - '12-31'
+    2016:
+    - '1-1' 
+    - '12-31'
+    2017:
+    - '1-1' 
+    - '12-31'
+    2018:
+    - '5-15' 
+    - '11-30'
+    2019:
+    - '5-15' 
+    - '11-30'
+    2020:
+    - '5-15' 
+    - '11-30'
+    2021:
+    - '5-15' 
+    - '11-30'
+  target_date: '8-1'
+  bridge_years:
+  resolution: '5x1'
