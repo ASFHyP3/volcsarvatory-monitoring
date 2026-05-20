@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import random
 import subprocess
 import zipfile
 from pathlib import Path
@@ -259,16 +260,21 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
         try:
             body = json.loads(record['body'])
             message = body['Message']
-            if 'New AOI' in message:
+            if 'New AOI' in message or 'New Test' in message:
                 mb_ids = json.loads(MULTIBURST_JSON.read_text())
-                for mb_id in mb_ids.keys():
+                keys = [key for key in mb_ids.keys()]
+                if 'New Test' in message:
+                    keys = random.sample(keys, 3)
+                for mb_id in keys:
                     publish_sns_multiburst(mb_id)
             else:
                 message = json.loads(message)
                 mb_id = product_mbid_from_message(message)
+                log.log(logging.INFO, f'Finding InSAR pairs for {mb_id}')
                 jobs = prepare_pairs([mb_id])
-                if len(jobs) == 0:
+                if len(jobs) > 0:
                     _ = submit_jobs(jobs)
+                    log.log(logging.INFO, f'Jobs submitted for {mb_id}: {len(jobs)}')
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
