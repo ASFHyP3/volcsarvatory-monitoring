@@ -83,3 +83,42 @@ Holuhraun:
   target_date: '8-1'
   bridge_years:
   resolution: '5x1'
+Etna:
+  AOI:
+  - 14.854
+  - 15.403
+  - 37.589
+  - 37.866
+  temporal_baseline:
+  season:
+  - '1-1' 
+  - '12-31'
+  target_date:
+  bridge_years:
+  resolution:
+Vulcano:
+  AOI:
+  - 14.787
+  - 15.031
+  - 37.866
+  - 38.619
+  temporal_baseline:
+  season:
+  - '1-1' 
+  - '12-31'
+  target_date:
+  bridge_years:
+  resolution:
+Stromboli:
+  AOI:
+  - 15.178
+  - 15.247
+  - 38.770
+  - 38.814
+  temporal_baseline:
+  season:
+  - '1-1' 
+  - '12-31'
+  target_date:
+  bridge_years:
+  resolution:
