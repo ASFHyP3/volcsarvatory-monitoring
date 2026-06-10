@@ -54,14 +54,14 @@ runs:
             PublishBucket=${{ inputs.PUBLISH_BUCKET }} \
             EcrImageUri=${{ inputs.ECR_IMAGE_URI }}
     - name: Publish Test
-      if: contains(inputs.STACK_NAME, 'test')
+      if: ${{ github.ref_name == 'develop' }}
       shell: bash
       run: |
         aws sns publish \
           --topic-arn ${{ inputs.AOI_TOPIC_ARN }} \
           --message "New Test"
     - name: Publish Prod
-      if: contains(inputs.STACK_NAME, 'prod')
+      if: ${{ github.ref_name == 'main' }}
       shell: bash
       run: |
         aws sns publish \
