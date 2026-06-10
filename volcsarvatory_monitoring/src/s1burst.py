@@ -261,18 +261,24 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
 
     insar_jobs = []
     for mb_id in mb_ids:
+        print(f'Finding jobs for {mb_id}')
         mb_set = mbs_dic[mb_id]['mb_set']
         tbaseline = mbs_dic[mb_id]['temporal_baseline']
         season = mbs_dic[mb_id]['season']
         target = mbs_dic[mb_id]['target_date']
         bridge = mbs_dic[mb_id]['bridge_years']
         resolution = mbs_dic[mb_id]['resolution']
-        dpairs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
+        try:
+            dpairs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
+        except RuntimeError as e:
+            print(f'No pairs for {mb_id}')
+            print(e)
+            continue
 
         if len(list(dpairs.keys())) == 0:
             continue
         insar_jobs += pairs.prepare_multiburst_jobs(dpairs, mb_id, looks=resolution, apply_water_mask=True)
-        log.log(logging.DEBUG, f'{len(insar_jobs)} jobs for {mb_id}')
+        print(f'{len(insar_jobs)} jobs for {mb_id}')
 
     return insar_jobs
 

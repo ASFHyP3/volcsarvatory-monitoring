@@ -95,6 +95,8 @@ def get_pairs_dict(network: asf.Network) -> dict[str, dict]:
         pairs: Dictionary where the keys are the pair dates and the elements are the reference and secondary bursts
     """
     dpairs: dict[str, dict] = dict()
+    if len(network.connected_substacks) == 0:
+        raise RuntimeError('No connected stacks for network')
     first_stack = max(network.connected_substacks, key=len)
     for key in max(network.connected_substacks, key=len).keys():
         ref_date = key[0].strftime('%Y%m%d')
