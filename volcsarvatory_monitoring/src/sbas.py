@@ -358,6 +358,8 @@ def get_sbas_pairs(
     if bridge is None:
         bridge = 1
 
+    if isinstance(season, list):
+        season = tuple(season)
     if isinstance(season, tuple):
         pairs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
     elif isinstance(season, dict):
