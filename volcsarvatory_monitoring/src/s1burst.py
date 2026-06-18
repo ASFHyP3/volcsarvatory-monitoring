@@ -30,6 +30,8 @@ PARQUET_DIR = Path(__file__).parent / 'data'
 
 SENTINEL1_BURSTS_TO_PROCESS = Path(__file__).parent / 'data' / 'sentinel1_tiles_to_process.json'
 
+asf.constants.INTERNAL.CMR_TIMEOUT = 90
+
 
 def create_aux_jsons() -> None:
     """Finds overlapping burst(s) for given bounding box(es)."""
@@ -265,6 +267,8 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
         mb_set = mbs_dic[mb_id]['mb_set']
         tbaseline = mbs_dic[mb_id]['temporal_baseline']
         season = mbs_dic[mb_id]['season']
+        if isinstance(season, list):
+            season = tuple(season)
         target = mbs_dic[mb_id]['target_date']
         bridge = mbs_dic[mb_id]['bridge_years']
         resolution = mbs_dic[mb_id]['resolution']
