@@ -8,6 +8,9 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.3]
 
+### Added
+- Added AOIs for Venezuela M7.5 EQ.
+
 ### Fixed
 - Fixed issue when casting season as tuple.
 
