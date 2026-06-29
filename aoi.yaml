@@ -135,4 +135,4 @@ Venezuela:
     - '7-31'
   target_date:
   bridge_years:
-  resolution:
+  resolution: '5x1'
