@@ -122,3 +122,17 @@ Stromboli:
   target_date:
   bridge_years:
   resolution:
+Venezuela:
+  AOI:
+  - -69.8
+  - -66.5
+  - 9.8
+  - 11.3
+  temporal_baseline:
+  season:
+  2026: 
+    - '6-1' 
+    - '7-31'
+  target_date:
+  bridge_years:
+  resolution: '5x1'
