@@ -264,7 +264,7 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 mb_ids = json.loads(MULTIBURST_JSON.read_text())
                 keys = [key for key in mb_ids.keys()]
                 if 'New Test' in message:
-                    keys = random.sample(keys, 3)
+                    keys = keys[-5::]
                 for mb_id in keys:
                     publish_sns_multiburst(mb_id)
             else:
