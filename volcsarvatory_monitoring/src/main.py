@@ -3,7 +3,6 @@
 import json
 import logging
 import os
-import random
 import subprocess
 import zipfile
 from pathlib import Path
