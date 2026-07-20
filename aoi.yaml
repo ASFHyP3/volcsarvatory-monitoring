@@ -83,19 +83,6 @@ Holuhraun:
   target_date: '8-1'
   bridge_years:
   resolution: '5x1'
-Etna:
-  AOI:
-  - 14.854
-  - 15.403
-  - 37.589
-  - 37.866
-  temporal_baseline:
-  season:
-  - '1-1' 
-  - '12-31'
-  target_date:
-  bridge_years:
-  resolution:
 Vulcano:
   AOI:
   - 14.787
@@ -133,6 +120,32 @@ Venezuela:
   2026: 
     - '6-1' 
     - '7-31'
+  target_date:
+  bridge_years:
+  resolution: '5x1'
+Etna:
+  AOI:
+  - 14.854
+  - 15.403
+  - 37.589
+  - 37.866
+  temporal_baseline:
+  season:
+  - '1-1' 
+  - '12-31'
+  target_date:
+  bridge_years:
+  resolution:
+Kupreanof:
+  AOI:
+  - -159.92
+  - -159.65
+  - 55.94
+  - 56.08
+  temporal_baseline:
+  season:
+  - '5-1' 
+  - '11-20'
   target_date:
   bridge_years:
   resolution: '5x1'
