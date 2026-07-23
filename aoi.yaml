@@ -83,32 +83,20 @@ Holuhraun:
   target_date: '8-1'
   bridge_years:
   resolution: '5x1'
-Vulcano:
+Kupreanof:
   AOI:
-  - 14.787
-  - 15.031
-  - 37.866
-  - 38.619
+  - -159.92
+  - -159.65
+  - 55.94
+  - 56.08
   temporal_baseline:
   season:
-  - '1-1' 
-  - '12-31'
+  2026: 
+    - '5-1' 
+    - '11-20'
   target_date:
   bridge_years:
-  resolution:
-Stromboli:
-  AOI:
-  - 15.178
-  - 15.247
-  - 38.770
-  - 38.814
-  temporal_baseline:
-  season:
-  - '1-1' 
-  - '12-31'
-  target_date:
-  bridge_years:
-  resolution:
+  resolution: '5x1'
 Venezuela:
   AOI:
   - -69.8
@@ -122,7 +110,7 @@ Venezuela:
     - '7-31'
   target_date:
   bridge_years:
-  resolution: '5x1'
+  resolution:
 Etna:
   AOI:
   - 14.854
@@ -131,21 +119,64 @@ Etna:
   - 37.866
   temporal_baseline:
   season:
-  - '1-1' 
-  - '12-31'
+  2023:
+    - '1-1' 
+    - '12-31'
+  2024:
+    - '1-1' 
+    - '12-31'
+  2025:
+    - '1-1' 
+    - '12-31'
+  2026:
+    - '1-1' 
+    - '07-01'
   target_date:
   bridge_years:
   resolution:
-Kupreanof:
+Vulcano:
   AOI:
-  - -159.92
-  - -159.65
-  - 55.94
-  - 56.08
+  - 14.787
+  - 15.031
+  - 37.866
+  - 38.619
   temporal_baseline:
   season:
-  - '5-1' 
-  - '11-20'
+  2023:
+    - '1-1' 
+    - '12-31'
+  2024:
+    - '1-1' 
+    - '12-31'
+  2025:
+    - '1-1' 
+    - '12-31'
+  2026:
+    - '1-1' 
+    - '07-01'
+  target_date:
+  bridge_years:
+  resolution: '5x1'
+Stromboli:
+  AOI:
+  - 15.178
+  - 15.247
+  - 38.770
+  - 38.814
+  temporal_baseline:
+  season:
+  2023:
+    - '1-1' 
+    - '12-31'
+  2024:
+    - '1-1' 
+    - '12-31'
+  2025:
+    - '1-1' 
+    - '12-31'
+  2026:
+    - '1-1' 
+    - '07-01'
   target_date:
   bridge_years:
   resolution: '5x1'
