@@ -1,11 +1,22 @@
 """Module to validate multiburst sets."""
 
-import time
 from datetime import datetime
 
 import asf_search as asf
+import numpy as np
 import pandas as pd
-from asf_search.exceptions import InvalidMultiBurstCountError, InvalidMultiBurstTopologyError
+
+
+class MultiBurstError(asf.ASFError):
+    """Base MultiBurst Exception, not intended  direct use."""
+
+
+class InvalidMultiBurstCountError(MultiBurstError):
+    """Raise when a MultiBurst dict contains too many or no bursts."""
+
+
+class InvalidMultiBurstTopologyError(MultiBurstError):
+    """Raise when a collection of bursts is disconnected or contains holes."""
 
 
 def get_julian_season(season: tuple[str, str]) -> tuple[int, int]:
@@ -24,7 +35,7 @@ def get_julian_season(season: tuple[str, str]) -> tuple[int, int]:
     return (season_start_day, season_end_day)
 
 
-def get_multibursts(burst_ids: list[str]) -> list[asf.MultiBurst]:
+def get_multibursts(burst_ids: list[str]) -> list[dict]:
     """Get Multiburst objects from a list of burst ids.
 
     Args:
@@ -49,7 +60,7 @@ def get_multibursts(burst_ids: list[str]) -> list[asf.MultiBurst]:
     return multibursts
 
 
-def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
+def get_multibursts_path(burst_ids: list[str]) -> list[dict]:
     """Get Multiburst objects from a list of burst ids from one path.
 
     Args:
@@ -87,31 +98,59 @@ def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
     return multibursts
 
 
-def get_multiburst(multiburst_dict: dict) -> asf.MultiBurst:
-    """Converts a dictionary into a asf.MultiBurst object.
+def check_valid_multiburst(multiburst_dict: dict) -> None:
+    """Check that the burst group is valid (copied from burst2safe).
+
+    Args:
+        multiburst_dict: Dictionary with multiburst set
+    """
+    burst_range = dict()
+    tot = 0
+    for i in range(1, 4):
+        bids = sorted(
+            list(set([int(key.split('_')[1]) for key in multiburst_dict.keys() if f'IW{i}' in multiburst_dict[key]]))
+        )
+        tot += len(bids)
+        if tot > 30:
+            raise InvalidMultiBurstCountError(f'Only 30 bursts allowed per set, you have {tot}.')
+        if len(bids) > 0:
+            if bids != list(range(min(bids), max(bids) + 1)):
+                raise InvalidMultiBurstTopologyError(f'All bursts must have consecutive burst IDs. Found: {bids}.')
+            burst_range[i] = [min(bids), max(bids)]
+
+    swaths = [key for key in burst_range.keys()]
+    if len(swaths) == 1:
+        return
+
+    if 1 in swaths and 3 in swaths and 2 not in swaths:
+        raise InvalidMultiBurstTopologyError('No bursts in swath 2 but in swath 1 and 3')
+    else:
+        swath_combos = [[swaths[i], swaths[i + 1]] for i in range(len(swaths) - 1)]
+        for swath1, swath2 in swath_combos:
+            min_diff = burst_range[swath1][0] - burst_range[swath2][0]
+            if np.abs(min_diff) > 1:
+                raise InvalidMultiBurstTopologyError(f'Products from swaths {swath1} and {swath2} do not overlap')
+            max_diff = burst_range[swath1][1] - burst_range[swath2][1]
+            if np.abs(max_diff) > 1:
+                raise InvalidMultiBurstTopologyError(f'Products from swaths {swath1} and {swath2} do not overlap')
+
+
+def get_multiburst(multiburst_dict: dict) -> dict:
+    """Validates a multiburst dictionary.
 
     Args:
         multiburst_dict: Dictionary where the keys are burst IDs and the elements are the swaths.
 
     Returns:
-        multiburst: asf.MultiBurst object.
+        multiburst: Valid dictionary with multiburst set.
     """
     try:
-        multiburst = asf.MultiBurst(multiburst_dict)
+        check_valid_multiburst(multiburst_dict)
     except InvalidMultiBurstTopologyError as e:
         raise (e)
     except InvalidMultiBurstCountError as e:
         raise (e)
-    except ConnectionError:
-        time.sleep(5)
-        multiburst = asf.MultiBurst(multiburst_dict)
-    except ConnectionResetError:
-        time.sleep(5)
-        multiburst = asf.MultiBurst(multiburst_dict)
-    except OSError:
-        time.sleep(5)
-        multiburst = asf.MultiBurst(multiburst_dict)
-    return multiburst
+    return multiburst_dict
 
 
 def split_count(multiburst_dict: dict) -> list[dict]:

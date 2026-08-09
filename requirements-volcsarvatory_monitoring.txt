@@ -1,4 +1,4 @@
-asf_search[coherence] @ git+https://github.com/mfangaritav/Discovery-asf_search.git
+asf_search==12.3.0
 cartopy==0.25.0
 geopandas==1.1.3
 h5py==3.16.0

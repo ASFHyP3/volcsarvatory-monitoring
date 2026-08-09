@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import asf_search as asf
@@ -56,10 +58,26 @@ def update_aoi_multibursts(aois: dict) -> tuple[gpd.GeoDataFrame, dict]:
         aoi_gdf: Geoparquet with the AOIs intersecting land masks.
         mb_ids: multiburst ids for the multiburst sets.
     """
-    aoi_ids = [key for key in aois]
+    aoi_ids = [key for key in aois.keys()]
     mb_dics: dict[str, dict] = dict()
     for id in aoi_ids:
         aoi_gdf = aoi.add_aoi(id, extent=aois[id]['AOI'])
+        if aois[id]['season'] is None and aois[id]['target_date'] is None:
+            target, season = aoi.get_season(id, aois[id]['AOI'])
+            print(season)
+            aois[id]['season'] = (season[0].strftime('%m-%d'), season[1].strftime('%m-%d'))
+            aois[id]['target_date'] = target.strftime('%m-%d')
+        elif aois[id]['season'] is None:
+            target = aois[id]['target_date']
+            tdate = datetime.strptime(f'2019-{target}', '%Y-%m-%d')
+            season = ((tdate - timedelta(days=90)).strftime('%m-%d'), (tdate + timedelta(days=90)).strftime('%m-%d'))
+        elif aois[id]['target_date'] is None and isinstance(aois[id]['season'], list):
+            season = aois[id]['season']
+            start = datetime.strptime(f'2019-{season[0]}', '%Y-%m-%d')
+            end = datetime.strptime(f'2019-{season[1]}', '%Y-%m-%d')
+            dif = (end - start).days
+            target = start + timedelta(days=int(dif / 2))
+            aois[id]['target_date'] = target.strftime('%m-%d')
         mb_dic = get_multibursts(aois, id)
         mb_ids = [key for key in mb_dic]
         aoi_gdf.loc[aoi_gdf['name'] == id, 'mb_ids'] = ','.join(mb_ids)
@@ -85,7 +103,7 @@ def get_multibursts(aois: dict, id: str) -> dict:
     mb_dic: dict[str, dict] = dict()
     resolution = aois[id]['resolution']
     for multiburst in multibursts:
-        dic = multiburst.multiburst_dict
+        dic = multiburst
         mb_id = get_mbid(dic, resolution)
         mb_id = f'S1_{id}_{mb_id}'
         mb_dic[mb_id] = dict()
@@ -259,6 +277,7 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
     Returns:
         jobs: Prepared multiburst jobs.
     """
+    start = time.time()
     mbs_dic = json.loads(MULTIBURST_JSON.read_text())
 
     insar_jobs = []
@@ -283,6 +302,8 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
             continue
         insar_jobs += pairs.prepare_multiburst_jobs(dpairs, mb_id, looks=resolution, apply_water_mask=True)
         print(f'{len(insar_jobs)} jobs for {mb_id}')
+    end = time.time()
+    print(f'It took {end - start} seconds')
 
     return insar_jobs
 
