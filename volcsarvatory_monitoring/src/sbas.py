@@ -50,33 +50,6 @@ def first_date_multiburst(dic: dict, start: str | None = None) -> str:
         return first_date_burst(burst_id)
 
 
-def get_pairs_dict(network: asf.Network) -> dict[str, dict]:
-    """Creates a dictionary with the multiburst sets for each pair date in the network.
-
-    Args:
-        network: Network with SBAS
-
-    Returns:
-        pairs: Dictionary where the keys are the pair dates and the elements are the reference and secondary bursts
-    """
-    dpairs: dict[str, dict] = dict()
-    if len(network.connected_substacks) == 0:
-        raise RuntimeError('No connected stacks for network')
-    first_stack = max(network.connected_substacks, key=len)
-    for key in max(network.connected_substacks, key=len).keys():
-        ref_date = key[0].strftime('%Y%m%d')
-        sec_date = key[1].strftime('%Y%m%d')
-        skey = f'{ref_date}_{sec_date}'
-        dpairs[skey] = dict()
-        dpairs[skey]['refs'] = [first_stack[key].ref.properties['sceneName']]
-        dpairs[skey]['secs'] = [first_stack[key].sec.properties['sceneName']]
-        for add in network.additional_multiburst_networks:
-            stack = max(add.connected_substacks, key=len)
-            dpairs[skey]['refs'].append(stack[key].ref.properties['sceneName'])
-            dpairs[skey]['secs'].append(stack[key].sec.properties['sceneName'])
-    return dpairs
-
-
 def check_available_acquisitions(
     dic: dict,
     start: str,
