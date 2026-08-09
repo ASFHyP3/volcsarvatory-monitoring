@@ -17,3 +17,4 @@ xarray==2026.4.0
 fsspec==2026.4.0
 s3fs==0.4.2
 zarr==3.1.6
+networkx==3.1.6
