@@ -1,10 +1,7 @@
 """Module to prepare InSAR pairs for HyP3."""
 
 import os
-import random
 from copy import deepcopy
-
-import asf_search as asf
 
 
 MULTIBURST_JOB_TEMPLATE = {
@@ -13,54 +10,6 @@ MULTIBURST_JOB_TEMPLATE = {
         'apply_water_mask': True,
     },
 }
-
-
-def get_coherence(multiburst_dict: dict, num: int = 1) -> dict:
-    """Estimates the mean coherence for random burst(s) pairs in a multiburst set.
-
-    Args:
-        multiburst_dict: Dictionary where the keys are the burst ids and the elements the swaths.
-        num: Number of burst(s) to estimate the mean coherence.
-
-    Returns:
-        coherence: Dictionary where the keys are the number of days between the pairs and the
-                   elements are dictionaries where the keys are the reference dates.
-    """
-    coherence: dict[int, dict] = dict()
-    burst_ids = []
-    for bid in multiburst_dict.keys():
-        for swath in multiburst_dict[bid]:
-            burst_ids.append(bid + '_' + swath)
-
-    bids = random.sample(burst_ids, num)
-
-    for bid in bids:
-        prods = asf.search(fullBurstID=bid, start='2019-12-01', end='2021-02-01', polarization=asf.POLARIZATION.VV)[
-            ::-1
-        ]
-        if len(prods) == 0:
-            results = asf.search(fullBurstID=bid, polarization=asf.POLARIZATION.VV)
-            start_date = results[-1].properties['stopTime'].split('T')[0]
-            end_year = str(int(start_date.split('-')[0]) + 1)
-            end_month = start_date.split('-')[1]
-            end_day = start_date.split('-')[2]
-            end_date = f'{end_year}-{end_month}-{end_day}'
-            prods = asf.search(fullBurstID=bid, start=start_date, end=end_date, polarization=asf.POLARIZATION.VV)[::-1]
-        for i, ref in enumerate(prods[0:-1]):
-            for sec in prods[i + 1 : :]:
-                pair = asf.Pair(ref, sec)
-                temporal_baseline = pair.temporal_baseline.days
-                if temporal_baseline in [6, 12, 18, 24, 36, 48]:
-                    ref_date = ref.properties['stopTime'].split('T')[0]
-                    mean_coherence = pair.estimate_s1_mean_coherence() / num
-                    if temporal_baseline not in coherence.keys():
-                        coherence[temporal_baseline] = dict()
-                    else:
-                        if ref_date in coherence[temporal_baseline].keys():
-                            coherence[temporal_baseline][ref_date] += mean_coherence
-                        else:
-                            coherence[temporal_baseline][ref_date] = mean_coherence
-    return coherence
 
 
 def prepare_multiburst_jobs(
