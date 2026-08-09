@@ -490,14 +490,6 @@ def get_sbas_pairs(
     Returns:
         pairs: Dictionary with the reference and secondary acquisitions.
     """
-    if isinstance(season, tuple):
-        if float(season[0].replace('-', '.')) > float(season[1].replace('-', '.')):
-            raise ValueError(f'The second date is before the first date in {season}')
-    elif isinstance(season, dict):
-        for year in season.keys():
-            if float(season[year][0].replace('-', '.')) > float(season[year][1].replace('-', '.')):
-                raise ValueError(f'The second date is before the first date in {season[year]}')
-
     start = first_date_multiburst(dic)  # First available acquisition
 
     if bridge is None:
