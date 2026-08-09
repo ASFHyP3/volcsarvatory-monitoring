@@ -223,6 +223,7 @@ Resources:
             Action:
               - s3:List*
               - s3:Get*
+              - s3:Put*
             Resource:
               - !Sub "arn:aws:s3:::${PublishBucket}/*"
               - !Sub "arn:aws:s3:::${PublishBucket}"
@@ -309,7 +310,6 @@ Resources:
             Action:
               - s3:List*
               - s3:Get*
-              - s3:Put*
             Resource:
               - !Sub "arn:aws:s3:::${PublishBucket}/*"
               - !Sub "arn:aws:s3:::${PublishBucket}"
