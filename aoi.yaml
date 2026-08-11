@@ -106,8 +106,8 @@ Venezuela:
   temporal_baseline:
   season:
     2026: 
-    - '6-1' 
-    - '7-31'
+    - '4-1' 
+    - '8-11'
   target_date:
   bridge_years:
   resolution:
