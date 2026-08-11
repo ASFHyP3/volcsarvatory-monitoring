@@ -204,8 +204,8 @@ def connect_components(network: nx.Graph, bridge_date: str | None, tbaseline: in
 
         # Ideally the connection is made with the bridge_target
         if bridge_date is None:
-            target1 = sub1[len(sub1) // 2]
-            target2 = sub2[len(sub2) // 2]
+            target1 = sub1[len(sub1) // 2].strftime('%m-%d')
+            target2 = sub2[len(sub2) // 2].strftime('%m-%d')
         else:
             target1 = bridge_date
             target2 = bridge_date
