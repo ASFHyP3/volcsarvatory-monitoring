@@ -1,5 +1,6 @@
 """Module to find SBAS for a multiburst set."""
 
+import time
 from datetime import datetime, timedelta
 
 import asf_search as asf
@@ -92,10 +93,19 @@ def get_multi_stack(
         all_burst_stacks: Stack from union of multiple burst stacks
     """
     burst_stacks = []
+    first_date = first_date_multiburst(dic)
+    end_date = (datetime.strptime(first_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
     tot_bursts = sum([len(dic[key]) for key in dic.keys()])
     for key in dic.keys():
         burst_ids = [f'{key}_{swath}' for swath in dic[key]]
         for bid in burst_ids:
+            ref = asf.search(
+                fullBurstID=bid,
+                start=first_date,
+                end=end_date,
+                season=pm.get_julian_season(season),
+                polarization=asf.POLARIZATION.VV,
+            )
             stack = asf.search(
                 fullBurstID=bid,
                 start=start,
@@ -103,8 +113,10 @@ def get_multi_stack(
                 season=pm.get_julian_season(season),
                 polarization=asf.POLARIZATION.VV,
             )
-            stack = asf.baseline.calculate_perpendicular_baselines(stack[-1].properties['sceneName'], stack)
+            stack += ref
+            stack = asf.baseline.calculate_perpendicular_baselines(ref[-1].properties['sceneName'], stack)
             stack = gpd.GeoDataFrame.from_features(stack.geojson())
+            stack = stack[stack['sceneName'] != ref[-1].properties['sceneName']]
             burst_stacks.append(stack)
     all_burst_stacks: pd.DataFrame = pd.concat(burst_stacks)
     groups = list(set(all_burst_stacks['orbit']))
@@ -339,10 +351,14 @@ def build_sbas_pairs(
     Returns:
         pairs: Dictionary with the reference and secondary acquisitions.
     """
+    ini = time.time()
     stack = get_multi_stack(dic, start, end, season)
+    fin = time.time()
+    print('Time to get multi stack', fin - ini)
     ugids = stack['orbit'].unique().tolist()
     pairs = dict()
     tacqs, pacqs = [], []
+    ini = time.time()
     for i, sec_gid in enumerate(ugids[0:-1]):
         for ref_gid in ugids[i + 1 : :]:
             refs = stack[stack['orbit'] == ref_gid]
@@ -375,6 +391,8 @@ def build_sbas_pairs(
                 if tsec not in tacqs:
                     tacqs.append(tsec)
                     pacqs.append(psec)
+    fin = time.time()
+    print('Time to get pairs', fin - ini)
 
     pairs = connect_network(pairs, target, tbaseline=tbaseline)
 
@@ -403,8 +421,27 @@ def build_sbas_pairs_default(
         pairs: Dictionary with the reference and secondary acquisitions.
     """
     end = datetime.now()
+    start_date = datetime.strptime(start, '%Y-%m-%d')
     start_last = end - timedelta(days=365)
-    pairs = build_sbas_pairs(dic, start, end.strftime('%Y-%m-%d'), season, tbaseline, target, bridge)
+    years = int((end - start_date).days / 365) + 1
+    startt = start_date
+    pairs = {}
+    isend = False
+    for year in range(years):
+        endt = startt + timedelta(days=int(365 * bridge + tbaseline))
+        if endt > end:
+            endt = end
+            isend = True
+        print(f'Getting pairs between {startt.strftime("%Y-%m-%d")} and {endt.strftime("%Y-%m-%d")}')
+        pairs_add = build_sbas_pairs(
+            dic, startt.strftime('%Y-%m-%d'), endt.strftime('%Y-%m-%d'), season, tbaseline, target, bridge
+        )
+        startt = startt + timedelta(days=365)
+        for i, pair in enumerate(pairs_add.keys()):
+            if pair not in pairs.keys():
+                pairs[pair] = pairs_add[pair]
+        if isend:
+            break
 
     if check_available_acquisitions(dic, start_last.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')):
         season = (start_last.strftime('%m-%d'), end.strftime('%m-%d'))
