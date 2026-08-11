@@ -1,5 +1,6 @@
 """Module to find SBAS for a multiburst set."""
 
+import time
 from datetime import datetime, timedelta
 
 import asf_search as asf
@@ -9,7 +10,6 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-import pairs
 import prepare_multibursts as pm
 
 
@@ -92,10 +92,18 @@ def get_multi_stack(
         all_burst_stacks: Stack from union of multiple burst stacks
     """
     burst_stacks = []
+    first_date = first_date_multiburst(dic)
+    end_date = (datetime.strptime(first_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
     tot_bursts = sum([len(dic[key]) for key in dic.keys()])
     for key in dic.keys():
         burst_ids = [f'{key}_{swath}' for swath in dic[key]]
         for bid in burst_ids:
+            ref = asf.search(
+                fullBurstID=bid,
+                start=first_date,
+                end=end_date,
+                polarization=asf.POLARIZATION.VV,
+            )
             stack = asf.search(
                 fullBurstID=bid,
                 start=start,
@@ -103,8 +111,11 @@ def get_multi_stack(
                 season=pm.get_julian_season(season),
                 polarization=asf.POLARIZATION.VV,
             )
-            stack = asf.baseline.calculate_perpendicular_baselines(stack[-1].properties['sceneName'], stack)
+            stack += ref
+            print(ref[-1].properties['sceneName'])
+            stack = asf.baseline.calculate_perpendicular_baselines(ref[-1].properties['sceneName'], stack)
             stack = gpd.GeoDataFrame.from_features(stack.geojson())
+            stack = stack[stack['sceneName'] != ref[-1].properties['sceneName']]
             burst_stacks.append(stack)
     all_burst_stacks: pd.DataFrame = pd.concat(burst_stacks)
     groups = list(set(all_burst_stacks['orbit']))
@@ -339,10 +350,14 @@ def build_sbas_pairs(
     Returns:
         pairs: Dictionary with the reference and secondary acquisitions.
     """
+    ini = time.time()
     stack = get_multi_stack(dic, start, end, season)
+    fin = time.time()
+    print('Time to get multi stack', fin - ini)
     ugids = stack['orbit'].unique().tolist()
     pairs = dict()
     tacqs, pacqs = [], []
+    ini = time.time()
     for i, sec_gid in enumerate(ugids[0:-1]):
         for ref_gid in ugids[i + 1 : :]:
             refs = stack[stack['orbit'] == ref_gid]
@@ -363,8 +378,8 @@ def build_sbas_pairs(
                 ref_date = list(pd.to_datetime(pairs_gid['stopTime_ref']).dt.strftime('%Y%m%d'))[0]
                 sec_date = list(pd.to_datetime(pairs_gid['stopTime_sec']).dt.strftime('%Y%m%d'))[0]
                 key = f'{ref_date}_{sec_date}'
-                pref = float(pairs_gid['perpendicularBaseline_ref'][0])
-                psec = float(pairs_gid['perpendicularBaseline_sec'][0])
+                pref = float(np.mean(pairs_gid['perpendicularBaseline_ref']))
+                psec = float(np.mean(pairs_gid['perpendicularBaseline_sec']))
                 pair['pbaselines'] = [pref, psec]
                 pairs[key] = pair
                 tref = datetime.strptime(ref_date, '%Y%m%d')
@@ -375,6 +390,8 @@ def build_sbas_pairs(
                 if tsec not in tacqs:
                     tacqs.append(tsec)
                     pacqs.append(psec)
+    fin = time.time()
+    print('Time to get pairs', fin - ini)
 
     pairs = connect_network(pairs, target, tbaseline=tbaseline)
 
@@ -403,8 +420,27 @@ def build_sbas_pairs_default(
         pairs: Dictionary with the reference and secondary acquisitions.
     """
     end = datetime.now()
+    start_date = datetime.strptime(start, '%Y-%m-%d')
     start_last = end - timedelta(days=365)
-    pairs = build_sbas_pairs(dic, start, end.strftime('%Y-%m-%d'), season, tbaseline, target, bridge)
+    years = int((end - start_date).days / 365) + 1
+    startt = start_date
+    pairs: dict[str, dict] = {}
+    isend = False
+    for year in range(years):
+        endt = startt + timedelta(days=int(365 * bridge + tbaseline))
+        if endt > end:
+            endt = end
+            isend = True
+        print(f'Getting pairs between {startt.strftime("%Y-%m-%d")} and {endt.strftime("%Y-%m-%d")}')
+        pairs_add = build_sbas_pairs(
+            dic, startt.strftime('%Y-%m-%d'), endt.strftime('%Y-%m-%d'), season, tbaseline, target, bridge
+        )
+        startt = startt + timedelta(days=365)
+        for i, pair in enumerate(pairs_add.keys()):
+            if pair not in pairs.keys():
+                pairs[pair] = pairs_add[pair]
+        if isend:
+            break
 
     if check_available_acquisitions(dic, start_last.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')):
         season = (start_last.strftime('%m-%d'), end.strftime('%m-%d'))
@@ -424,7 +460,6 @@ def build_sbas_pairs_default(
             if pair not in pairs.keys():
                 pairs[pair] = pairs_add[pair]
     pairs = connect_network(pairs, target, tbaseline=tbaseline)
-    plot_network(pairs)
 
     return pairs
 
@@ -450,7 +485,7 @@ def build_sbas_pairs_custom(
     Returns:
         dpairs: Dictionary with the reference and secondary acquisitions.
     """
-    pairs[str, dict] = dict()
+    pairs: dict[str, dict] = dict()
     for season_yr in season.keys():
         season_tmp = season[season_yr]
 
@@ -463,10 +498,9 @@ def build_sbas_pairs_custom(
         start_yr = f'{season_yr}-{month_start.zfill(2)}-{day_start.zfill(2)}'
         end_yr = f'{season_yr}-{month_end.zfill(2)}-{day_end.zfill(2)}'
         if check_available_acquisitions(dic, start_yr, end_yr):
-            pairs = pairs | build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)  # type: ignore
+            pairs = pairs | build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)
 
     pairs = connect_network(pairs, target=target, tbaseline=tbaseline)
-    plot_network(pairs)
 
     return pairs
 
@@ -501,6 +535,7 @@ def get_sbas_pairs(
         pairs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
     elif isinstance(season, dict):
         pairs = build_sbas_pairs_custom(dic, start, season, tbaseline, target, bridge)
+    plot_network(pairs)
 
     return pairs
 
