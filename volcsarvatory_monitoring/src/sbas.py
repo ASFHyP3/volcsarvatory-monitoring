@@ -92,12 +92,12 @@ def get_multi_stack(
         all_burst_stacks: Stack from union of multiple burst stacks
     """
     burst_stacks = []
-    first_date = first_date_multiburst(dic)
-    end_date = (datetime.strptime(first_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
     tot_bursts = sum([len(dic[key]) for key in dic.keys()])
     for key in dic.keys():
         burst_ids = [f'{key}_{swath}' for swath in dic[key]]
         for bid in burst_ids:
+            first_date = first_date_burst(bid)
+            end_date = (datetime.strptime(first_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
             ref = asf.search(
                 fullBurstID=bid,
                 start=first_date,
@@ -112,7 +112,6 @@ def get_multi_stack(
                 polarization=asf.POLARIZATION.VV,
             )
             stack += ref
-            print(ref[-1].properties['sceneName'])
             stack = asf.baseline.calculate_perpendicular_baselines(ref[-1].properties['sceneName'], stack)
             stack = gpd.GeoDataFrame.from_features(stack.geojson())
             stack = stack[stack['sceneName'] != ref[-1].properties['sceneName']]
@@ -511,6 +510,7 @@ def get_sbas_pairs(
     season: dict | tuple[str, str] | None = None,
     target: str | None = None,
     bridge: int | None = None,
+    plot: bool = False,
 ) -> dict[str, dict]:
     """Calculates the sbas pairs for a multiburst set.
 
@@ -520,6 +520,7 @@ def get_sbas_pairs(
         season: Tuple of strings in the format month-day to define the season.
         target: String in the format month-day to define the target date to bridge the years.
         bridge: Number of years to bridge.
+        plot: Plot SBAS network.
 
     Returns:
         pairs: Dictionary with the reference and secondary acquisitions.
@@ -535,7 +536,9 @@ def get_sbas_pairs(
         pairs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
     elif isinstance(season, dict):
         pairs = build_sbas_pairs_custom(dic, start, season, tbaseline, target, bridge)
-    plot_network(pairs)
+
+    if plot:
+        plot_network(pairs)
 
     return pairs
 
