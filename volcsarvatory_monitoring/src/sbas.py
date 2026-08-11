@@ -10,7 +10,6 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-import pairs
 import prepare_multibursts as pm
 
 
@@ -103,7 +102,6 @@ def get_multi_stack(
                 fullBurstID=bid,
                 start=first_date,
                 end=end_date,
-                season=pm.get_julian_season(season),
                 polarization=asf.POLARIZATION.VV,
             )
             stack = asf.search(
@@ -114,6 +112,7 @@ def get_multi_stack(
                 polarization=asf.POLARIZATION.VV,
             )
             stack += ref
+            print(ref[-1].properties['sceneName'])
             stack = asf.baseline.calculate_perpendicular_baselines(ref[-1].properties['sceneName'], stack)
             stack = gpd.GeoDataFrame.from_features(stack.geojson())
             stack = stack[stack['sceneName'] != ref[-1].properties['sceneName']]
@@ -379,8 +378,8 @@ def build_sbas_pairs(
                 ref_date = list(pd.to_datetime(pairs_gid['stopTime_ref']).dt.strftime('%Y%m%d'))[0]
                 sec_date = list(pd.to_datetime(pairs_gid['stopTime_sec']).dt.strftime('%Y%m%d'))[0]
                 key = f'{ref_date}_{sec_date}'
-                pref = float(pairs_gid['perpendicularBaseline_ref'][0])
-                psec = float(pairs_gid['perpendicularBaseline_sec'][0])
+                pref = float(np.mean(pairs_gid['perpendicularBaseline_ref']))
+                psec = float(np.mean(pairs_gid['perpendicularBaseline_sec']))
                 pair['pbaselines'] = [pref, psec]
                 pairs[key] = pair
                 tref = datetime.strptime(ref_date, '%Y%m%d')
@@ -425,7 +424,7 @@ def build_sbas_pairs_default(
     start_last = end - timedelta(days=365)
     years = int((end - start_date).days / 365) + 1
     startt = start_date
-    pairs = {}
+    pairs: dict[str, dict] = {}
     isend = False
     for year in range(years):
         endt = startt + timedelta(days=int(365 * bridge + tbaseline))
@@ -461,7 +460,6 @@ def build_sbas_pairs_default(
             if pair not in pairs.keys():
                 pairs[pair] = pairs_add[pair]
     pairs = connect_network(pairs, target, tbaseline=tbaseline)
-    plot_network(pairs)
 
     return pairs
 
@@ -487,7 +485,7 @@ def build_sbas_pairs_custom(
     Returns:
         dpairs: Dictionary with the reference and secondary acquisitions.
     """
-    pairs[str, dict] = dict()
+    pairs: dict[str, dict] = dict()
     for season_yr in season.keys():
         season_tmp = season[season_yr]
 
@@ -500,10 +498,9 @@ def build_sbas_pairs_custom(
         start_yr = f'{season_yr}-{month_start.zfill(2)}-{day_start.zfill(2)}'
         end_yr = f'{season_yr}-{month_end.zfill(2)}-{day_end.zfill(2)}'
         if check_available_acquisitions(dic, start_yr, end_yr):
-            pairs = pairs | build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)  # type: ignore
+            pairs = pairs | build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)
 
     pairs = connect_network(pairs, target=target, tbaseline=tbaseline)
-    plot_network(pairs)
 
     return pairs
 
@@ -538,6 +535,7 @@ def get_sbas_pairs(
         pairs = build_sbas_pairs_default(dic, start, season, tbaseline, target, bridge)
     elif isinstance(season, dict):
         pairs = build_sbas_pairs_custom(dic, start, season, tbaseline, target, bridge)
+    plot_network(pairs)
 
     return pairs
 
