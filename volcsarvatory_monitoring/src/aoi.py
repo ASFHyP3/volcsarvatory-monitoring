@@ -92,7 +92,7 @@ def get_coherence(extent: list) -> dict[datetime, float]:
             ds = xr.open_zarr(fsspec.get_mapper(uri, s3={'anon': True}), consolidated=False)
             ds = ds.rio.write_crs('EPSG:4326', inplace=False)
             try:
-                subset = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy)
+                subset = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy, allow_one_dimensional_raster=True)
                 coherence[temp][season] = subset.coherence.mean().compute().item()
                 date = datetime.strptime(f'2019-{nseasons[i]}-01', '%Y-%m-%d')
                 if not np.isnan(coherence[temp][season]):
