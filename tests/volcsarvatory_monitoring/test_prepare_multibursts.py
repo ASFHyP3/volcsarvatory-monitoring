@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 import responses
-from asf_search.exceptions import InvalidMultiBurstCountError, InvalidMultiBurstTopologyError
 
 import prepare_multibursts as pm
+from prepare_multibursts import InvalidMultiBurstCountError, InvalidMultiBurstTopologyError
 
 
 def test_get_julian_season() -> None:
@@ -29,9 +29,9 @@ def test_get_multibursts() -> None:
     )
     burst_ids = ['110_234430_IW3', '037_077633_IW1', '037_077634_IW1']
     mbs = pm.get_multibursts(burst_ids)
-    keys = [key for mb in mbs for key in mb.multiburst_dict.keys()]
+    keys = [key for mb in mbs for key in mb.keys()]
     bids = [bid[0:10] for bid in burst_ids]
-    all_dic = {k: e for mb in mbs for k, e in mb.multiburst_dict.items()}
+    all_dic = {k: e for mb in mbs for k, e in mb.items()}
     print(all_dic)
 
     assert all(burst_id in keys for burst_id in bids)
@@ -201,4 +201,4 @@ def test_get_multiburst():
     }
     mb = pm.get_multiburst(mb_dic)
 
-    assert mb.multiburst_dict == mb_dic
+    assert mb == mb_dic

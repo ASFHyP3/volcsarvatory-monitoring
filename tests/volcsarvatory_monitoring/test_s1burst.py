@@ -59,7 +59,10 @@ def test_get_multibursts(mock_burst_ids):
 @patch('s1burst.get_multibursts')
 def test_update_aoi_multibursts(mock_multibursts):
     bbox = [-176.25, -175.92, 51.95, 52.14]
-    aoi_dic = {'test': {'AOI': bbox}, 'test1': {'AOI': bbox}}
+    aoi_dic = {
+        'test': {'AOI': bbox, 'season': None, 'target_date': None},
+        'test1': {'AOI': bbox, 'season': None, 'target_date': None},
+    }
     mb_dic1: dict[str, dict] = {
         '000_000001s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
         '000_000002s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},

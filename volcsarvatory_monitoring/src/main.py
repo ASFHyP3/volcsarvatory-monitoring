@@ -3,7 +3,6 @@
 import json
 import logging
 import os
-import random
 import subprocess
 import zipfile
 from pathlib import Path
@@ -256,6 +255,7 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
         AWS SQS batchItemFailures JSON response including messages that failed to be processed
     """
     batch_item_failures = []
+    bucket_name = os.environ.get('PUBLISH_BUCKET')
     for record in event['Records']:
         try:
             body = json.loads(record['body'])
@@ -264,9 +264,13 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 mb_ids = json.loads(MULTIBURST_JSON.read_text())
                 keys = [key for key in mb_ids.keys()]
                 if 'New Test' in message:
-                    keys = random.sample(keys, 3)
+                    keys = keys[-8::]
                 for mb_id in keys:
                     publish_sns_multiburst(mb_id)
+                current_dir = Path.cwd()
+                for file_path in current_dir.glob('coherence*.pdf'):
+                    s3 = boto3.client('s3')
+                    s3.upload_file(file_path.name, bucket_name, f'aux/network_{mb_id}.pdf')
             else:
                 message = json.loads(message)
                 mb_id = product_mbid_from_message(message)
@@ -275,6 +279,8 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 if len(jobs) > 0:
                     _ = submit_jobs(jobs)
                     log.log(logging.INFO, f'Jobs submitted for {mb_id}: {len(jobs)}')
+                    s3 = boto3.client('s3')
+                    s3.upload_file('network.pdf', bucket_name, f'aux/network_{mb_id}.pdf')
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
