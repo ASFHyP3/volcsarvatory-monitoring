@@ -180,3 +180,14 @@ Stromboli:
   target_date:
   bridge_years:
   resolution: '5x1'
+TracyArm:
+  AOI:
+  - -133.09
+  - -133.06
+  - 57.84
+  - 57.85
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution: '5x1'
