@@ -2,9 +2,11 @@
 
 import json
 import logging
+import multiprocessing
 import os
 import time
 from datetime import datetime, timedelta
+from functools import partial
 from pathlib import Path
 
 import asf_search as asf
@@ -39,13 +41,111 @@ def create_aux_jsons() -> None:
     """Finds overlapping burst(s) for given bounding box(es)."""
     yamlo = yaml.YAML(typ='rt')
     aois = yamlo.load(AOI.read_text())
-    aoi_gdf, mb_dics = update_aoi_multibursts(aois)
+    #aoi_gdf, mb_dics = update_aoi_multibursts(aois)
+    aoi_gdf, mb_dics = update_aoi_multibursts_paralell(aois)
     aoi.update_aoi(aoi_gdf)
 
     with MULTIBURST_JSON.open('w') as json_file:
         json.dump(mb_dics, json_file)
 
     update_burst_json()
+
+
+def one_aoi_season_target(i: int, aois:dict) -> dict:
+    """Updates geoparquet for the AOIs and finds multiburst sets.
+
+    Args:
+        aois: Dictionary with the AOIs.
+
+    Returns:
+        aoi_gdf: Geoparquet with the AOIs intersecting land masks.
+        mb_ids: multiburst ids for the multiburst sets.
+    """
+    aoi_ids = [key for key in aois.keys()]
+    id = aoi_ids[i]
+    if aois[id]['season'] is None and aois[id]['target_date'] is None:
+        target, season = aoi.get_season(id, aois[id]['AOI'])
+        season = (season[0].strftime('%m-%d'), season[1].strftime('%m-%d'))
+        target = target.strftime('%m-%d')
+    elif aois[id]['season'] is None:
+        target = aois[id]['target_date']
+        tdate = datetime.strptime(f'2019-{target}', '%Y-%m-%d')
+        season = ((tdate - timedelta(days=90)).strftime('%m-%d'), (tdate + timedelta(days=90)).strftime('%m-%d'))
+    elif aois[id]['target_date'] is None and isinstance(aois[id]['season'], list):
+        season = aois[id]['season']
+        start = datetime.strptime(f'2019-{season[0]}', '%Y-%m-%d')
+        end = datetime.strptime(f'2019-{season[1]}', '%Y-%m-%d')
+        dif = (end - start).days
+        target = start + timedelta(days=int(dif / 2))
+
+    target, season = aoi.get_season(id, aois[id]['AOI'])
+
+    return target, season
+
+
+def one_multibursts(i, ids):
+    id = ids[i]
+    burst_dict = aoi.get_burst_ids(aoi_id=id)
+    burst_ids = [bid for bid in burst_dict.keys()]
+    multibursts = pm.get_multibursts(burst_ids)
+    mb_set = dict()
+    mb_set[id] = multibursts
+    return mb_set, burst_ids
+
+
+def update_aoi_multibursts_paralell(aois: dict) -> tuple[gpd.GeoDataFrame, dict]:
+    """Updates geoparquet for the AOIs and finds multiburst sets.
+
+    Args:
+        aois: Dictionary with the AOIs.
+
+    Returns:
+        aoi_gdf: Geoparquet with the AOIs intersecting land masks.
+        mb_ids: multiburst ids for the multiburst sets.
+    """
+    aoi_ids = [key for key in aois.keys()]
+    pool = multiprocessing.Pool(processes = 4)
+    subrutina = partial(one_aoi_season_target, aois = aois)
+    targets, seasons = zip(*pool.map(subrutina, range(len(aoi_ids))))
+    pool.close()
+    pool.join()
+
+    for id in aoi_ids:
+        aoi_gdf = aoi.add_aoi(id, extent=aois[id]['AOI'])
+
+    pool = multiprocessing.Pool(processes = 4)
+    subrutina = partial(one_multibursts, ids = aoi_ids)
+    mb_sets, bids = zip(*pool.map(subrutina, range(len(aoi_ids))))
+    mb_dics: dict[str, dict] = dict()
+    resolution = aois[id]['resolution']
+
+    for mb_set in mb_sets:
+        keys = [key for key in mb_set.keys()]
+        id = keys[0]
+        multibursts = mb_set[id]
+        mb_dic: dict[str, dict] = dict()
+        for multiburst in multibursts:
+            dic = multiburst
+            mb_id = get_mbid(dic, resolution)
+            mb_id = f'S1_{id}_{mb_id}'
+            mb_dic[mb_id] = dict()
+            mb_dic[mb_id]['mb_set'] = dic
+            mb_dic[mb_id]['temporal_baseline'] = aois[id]['temporal_baseline']
+            if aois[id]['season'] is None or isinstance(aois[id]['season'], dict):
+                mb_dic[mb_id]['season'] = aois[id]['season']
+            elif isinstance(aois[id]['season'], list) or isinstance(aois[id]['season'], tuple):
+                mb_dic[mb_id]['season'] = tuple(aois[id]['season'])
+            else:
+                raise ValueError(f'The season for {id} does not have a correct format')
+            mb_dic[mb_id]['target_date'] = aois[id]['target_date']
+            mb_dic[mb_id]['bridge_years'] = aois[id]['bridge_years']
+            mb_dic[mb_id]['resolution'] = resolution
+        mb_ids = [key for key in mb_dic]
+        aoi_gdf.loc[aoi_gdf['name'] == id, 'mb_ids'] = ','.join(mb_ids)
+        mb_dics |= mb_dic
+        print(f'Multibursts for {id}: {",".join(mb_ids)}')
+
+    return aoi_gdf, mb_dics
 
 
 def update_aoi_multibursts(aois: dict) -> tuple[gpd.GeoDataFrame, dict]:
