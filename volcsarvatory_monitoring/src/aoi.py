@@ -96,7 +96,9 @@ def get_coherence(extent: list) -> dict[datetime, float]:
                 subset = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy, allow_one_dimensional_raster=True)
                 coherence[temp][season] = subset.coherence.mean().compute().item()
                 if np.isnan(coherence[temp][season]):
-                    subset = ds.rio.clip_box(minx=minx-1, miny=miny-1, maxx=maxx+1, maxy=maxy+1, allow_one_dimensional_raster=True)
+                    subset = ds.rio.clip_box(
+                        minx=minx - 1, miny=miny - 1, maxx=maxx + 1, maxy=maxy + 1, allow_one_dimensional_raster=True
+                    )
                     coherence[temp][season] = subset.coherence.mean().compute().item()
                 date = datetime.strptime(f'2019-{nseasons[i]}-01', '%Y-%m-%d')
                 if not np.isnan(coherence[temp][season]):
@@ -107,6 +109,7 @@ def get_coherence(extent: list) -> dict[datetime, float]:
                         cvalues[date] += coherence[temp][season]
                         num[date] += 1
             except Exception as e:
+                print(e)
                 pass
     for key in cvalues.keys():
         cvalues[key] = cvalues[key] / (100 * num[key])
