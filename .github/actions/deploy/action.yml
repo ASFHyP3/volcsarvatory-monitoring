@@ -53,6 +53,7 @@ runs:
             EarthdataPassword=${{ inputs.EARTHDATA_PASSWORD }} \
             PublishBucket=${{ inputs.PUBLISH_BUCKET }} \
             EcrImageUri=${{ inputs.ECR_IMAGE_URI }}
+
     - name: Publish Test
       if: contains(inputs.STACK_NAME, 'test')
       shell: bash
@@ -60,6 +61,7 @@ runs:
         aws sns publish \
           --topic-arn ${{ inputs.AOI_TOPIC_ARN }} \
           --message "New Test"
+
     - name: Publish Prod
       if: contains(inputs.STACK_NAME, 'prod')
       shell: bash
