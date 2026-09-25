@@ -62,6 +62,8 @@ jobs:
           EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
           EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
           CF_TEMPLATE_BUCKET: cf-templates-1uzy61g1h6omf-us-west-2
+          CF_ROLE_ARN: ${{ vars.CLOUDFORMATION_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
           SENTINEL1_TOPIC_ARN: ${{ vars.SENTINEL1_TOPIC_ARN }}
           AOI_TOPIC_ARN: ${{ vars.AOI_TOPIC_ARN }}
           BUCKET_TOPIC_ARN: ${{ vars.BUCKET_TOPIC_ARN }}

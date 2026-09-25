@@ -6,6 +6,10 @@ inputs:
     required: true
   CF_TEMPLATE_BUCKET:
     required: true
+  CF_ROLE_ARN:
+    required: true
+  AWS_REGION:
+    required: true
   AOI_TOPIC_ARN:
     required: true
   BUCKET_TOPIC_ARN:
@@ -41,6 +45,7 @@ runs:
         aws cloudformation deploy \
           --template-file packaged.yml \
           --stack-name=${{ inputs.STACK_NAME }} \
+          --role-arn ${{ inputs.CF_ROLE_ARN }} \
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
             Sentinel1TopicArn=${{ inputs.SENTINEL1_TOPIC_ARN }} \
@@ -53,6 +58,13 @@ runs:
             EarthdataPassword=${{ inputs.EARTHDATA_PASSWORD }} \
             PublishBucket=${{ inputs.PUBLISH_BUCKET }} \
             EcrImageUri=${{ inputs.ECR_IMAGE_URI }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.CF_ROLE_ARN }}
+        aws-region: ${{ inputs.AWS_REGION }}
+        role-chaining: true
 
     - name: Publish Test
       if: contains(inputs.STACK_NAME, 'test')
