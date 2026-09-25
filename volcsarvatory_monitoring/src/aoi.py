@@ -91,9 +91,15 @@ def get_coherence(extent: list) -> dict[datetime, float]:
             uri = f's3://asf-search-coh/global_coh_100ppd_11367x4367_Zarrv2/Global_{season}_vv_COH{temp}_100ppd.zarr'
             ds = xr.open_zarr(fsspec.get_mapper(uri, s3={'anon': True}), consolidated=False)
             ds = ds.rio.write_crs('EPSG:4326', inplace=False)
+
             try:
                 subset = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy, allow_one_dimensional_raster=True)
                 coherence[temp][season] = subset.coherence.mean().compute().item()
+                if np.isnan(coherence[temp][season]):
+                    subset = ds.rio.clip_box(
+                        minx=minx - 1, miny=miny - 1, maxx=maxx + 1, maxy=maxy + 1, allow_one_dimensional_raster=True
+                    )
+                    coherence[temp][season] = subset.coherence.mean().compute().item()
                 date = datetime.strptime(f'2019-{nseasons[i]}-01', '%Y-%m-%d')
                 if not np.isnan(coherence[temp][season]):
                     if date not in cvalues.keys():
@@ -102,7 +108,8 @@ def get_coherence(extent: list) -> dict[datetime, float]:
                     else:
                         cvalues[date] += coherence[temp][season]
                         num[date] += 1
-            except Exception:
+            except Exception as e:
+                print(e)
                 pass
     for key in cvalues.keys():
         cvalues[key] = cvalues[key] / (100 * num[key])
@@ -139,13 +146,22 @@ def get_season(id: str, extent: list) -> tuple[datetime, tuple]:
         season: Pair of dates with the ideal season for the AOI.
     """
     coherence = get_coherence(extent)
+
     start = datetime.strptime('2019-01-01', '%Y-%m-%d')
     days = [(date - start).days for date in coherence.keys()]
+    if len(days) == 0:
+        print('No coherence values using 01-01 to 12-31 as season and 06-01 as target')
+        season = (datetime.strptime('2019-01-01', '%Y-%m-%d'), datetime.strptime('2019-12-01', '%Y-%m-%d'))
+        target = datetime.strptime('2019-06-01', '%Y-%m-%d')
     days += [days[-1]]
     values = [coherence[key] for key in coherence.keys()]
     values += [values[-1]]
     initial_guess = [max(values), np.mean(days), np.std(days), 0, 0]
-    parameters, covariance = curve_fit(normal_curve, days, values, p0=np.array(initial_guess))
+    try:
+        parameters, covariance = curve_fit(normal_curve, days, values, p0=np.array(initial_guess), maxfev=10000)
+    except RuntimeError as e:
+        print(f'The normal curve could not be fitted: {e}')
+        parameters = initial_guess
     fitted_amp, fitted_mean, fitted_std, fitted_xoff, fitted_yoff = parameters
     target = start + timedelta(days=int(fitted_mean - fitted_xoff))
     portion = 0.34
