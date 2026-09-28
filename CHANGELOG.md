@@ -8,6 +8,9 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.4]
 
+### Added
+- Added Alaska AOIs and Krakatoa.
+
 ### Changed
 - Changed SBAS approach and drop the `asf-search` fork 
 
