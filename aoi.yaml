@@ -9,23 +9,6 @@ GSitkin:
   target_date:
   bridge_years:
   resolution:
-Veniaminof:
-  AOI:
-  - -159.42
-  - -159.29
-  - 56.14
-  - 56.23
-  temporal_baseline: 12
-  season:
-    2025:
-    - '1-1' 
-    - '12-31'
-    2026:
-    - '1-1' 
-    - '12-31'  
-  target_date: '3-15'
-  bridge_years:
-  resolution: '5x1'
 Kilauea:
   AOI:
   - -156.1
@@ -169,17 +152,6 @@ Stromboli:
   target_date:
   bridge_years:
   resolution: '5x1'
-Okmok:
-  AOI:
-  - -168.5
-  - -167.75
-  - 53.15
-  - 53.6
-  temporal_baseline:
-  season:
-  target_date:
-  bridge_years:
-  resolution:
 TracyArm:
   AOI:
   - -133.09
@@ -191,3 +163,399 @@ TracyArm:
   target_date:
   bridge_years:
   resolution: '5x1'
+Iliamna:
+  AOI:
+  - -153.3
+  - -152.5
+  - 59.84
+  - 60.25
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Augustine:
+  AOI:
+  - -153.6
+  - -153.3
+  - 59.3
+  - 59.42
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Kaguyak:
+  AOI:
+  - -154.7
+  - -153.2
+  - 58.26
+  - 59.00
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Katmai:
+  AOI:
+  - -155.5
+  - -154.5
+  - 58.03
+  - 58.66
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Seguam:
+  AOI:
+  - -172.643
+  - -172.2918
+  - 52.2443
+  - 52.3928
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Chagulak:
+  AOI:
+  - -171.3188
+  - -171.1148
+  - 52.4482
+  - 52.5881
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Yunaska:
+  AOI:
+  - -170.8491
+  - -170.5547
+  - 52.5409
+  - 52.6873
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Davidof:
+  AOI:
+  - 178.0881
+  - 178.5885
+  - 51.8963
+  - 52.0576
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Semisopochnoi:
+  AOI:
+  - 179.4725
+  - 179.77
+  - 51.8681
+  - 52.0339
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Makushin:
+  AOI:
+  - -167.2006
+  - -166.0768
+  - 53.5141
+  - 54.0111
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Akutan:
+  AOI:
+  - -166.1197
+  - -165.3817
+  - 54.0307
+  - 54.2238
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Westdahl:
+  AOI:
+  - -164.9531
+  - -164.0145
+  - 54.384
+  - 54.9839
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Edgecumbe:
+  AOI:
+  - -135.8846
+  - -135.6689
+  - 56.9823
+  - 57.3479
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Gareloi:
+  AOI:
+  - -178.8782
+  - -178.7309
+  - 51.7441
+  - 51.8381
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Takawangha:
+  AOI:
+  - -178.2361
+  - -177.615
+  - 51.5943
+  - 51.923
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Kanaga:
+  AOI:
+  - -177.7129
+  - -177.0463
+  - 51.6535
+  - 51.9436
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Moffett:
+  AOI:
+  - -176.9913
+  - -176.4227
+  - 51.5846
+  - 52.0086
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Veniaminof:
+  AOI:
+  - -160.5687
+  - -159.1315
+  - 55.8555
+  - 56.7459
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Amak:
+  AOI:
+  - -163.2685
+  - -162.5442
+  - 54.9412
+  - 55.4351
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Pavlof:
+  AOI:
+  - -162.5876
+  - -160.7216
+  - 55.0436
+  - 55.9471
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Unimak:
+  AOI:
+  - -163.9714
+  - -163.0495
+  - 54.5997
+  - 55.0604
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Atka:
+  AOI:
+  - -174.94
+  - -172.946
+  - 52.0285
+  - 52.4015
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Ukinrek:
+  AOI:
+  - -156.9546
+  - -155.9744
+  - 57.7599
+  - 58.2647
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Martin:
+  AOI:
+  - -156.0916
+  - -155.03
+  - 57.7068
+  - 58.3917
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Trident:
+  AOI:
+  - -155.6281
+  - -154.7321
+  - 57.9102
+  - 58.3876
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Aniakchak:
+  AOI:
+  - -159.0
+  - -156.4258
+  - 56.3679
+  - 57.3559
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Blue:
+  AOI:
+  - -157.3207
+  - -156.0793
+  - 57.5017
+  - 57.731
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Cleveland:
+  AOI:
+  - -170.1787
+  - -169.6692
+  - 52.7114
+  - 53.09
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Vsevidof:
+  AOI:
+  - -169.0916
+  - -167.8376
+  - 52.7963
+  - 53.5936
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Spurr:
+  AOI:
+  - -153.0945
+  - -151.3698
+  - 60.3365
+  - 61.6931
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Redoubt:
+  AOI:
+  - -153.3191
+  - -152.2022
+  - 59.853
+  - 60.6961
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Snowy:
+  AOI:
+  - -154.842
+  - -153.9768
+  - 58.0031
+  - 58.4939
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Knob:
+  AOI:
+  - -154.7075
+  - -154.1301
+  - 58.4952
+  - 58.7336
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Buldir:
+  AOI:
+  - 175.8391
+  - 175.9829
+  - 52.3351
+  - 52.3886
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Kiska:
+  AOI:
+  - 177.1929
+  - 178.1825
+  - 51.8211
+  - 52.1416
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
+Krakatoa:
+  AOI:
+  - 105.35
+  - 105.47
+  - -6.17
+  - -6.07
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
