@@ -62,9 +62,11 @@ runs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ inputs.CF_ROLE_ARN }}
         aws-region: ${{ inputs.AWS_REGION }}
+        role-to-assume: ${{ inputs.CF_ROLE_ARN }}
         role-chaining: true
+        role-skip-session-tagging: true
+        
 
     - name: Publish Test
       if: contains(inputs.STACK_NAME, 'test')
