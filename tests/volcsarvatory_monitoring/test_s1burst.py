@@ -52,14 +52,17 @@ def test_get_multibursts(mock_burst_ids):
     mb_dic = s1burst.get_multibursts(aoi_dic, 'test')
     key = 'S1_test_000_000001s1n01_000000s2n00_000000s3n00_INT80'
 
-    assert key in mb_dic.keys()
-    assert 'mb_set' in mb_dic[key].keys()
+    assert key in mb_dic
+    assert 'mb_set' in mb_dic[key]
 
 
 @patch('s1burst.get_multibursts')
 def test_update_aoi_multibursts(mock_multibursts):
     bbox = [-176.25, -175.92, 51.95, 52.14]
-    aoi_dic = {'test': {'AOI': bbox}, 'test1': {'AOI': bbox}}
+    aoi_dic = {
+        'test': {'AOI': bbox, 'season': None, 'target_date': None},
+        'test1': {'AOI': bbox, 'season': None, 'target_date': None},
+    }
     mb_dic1: dict[str, dict] = {
         '000_000001s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
         '000_000002s1n01_000000s2n00_000000s3n00_INT80': {'mb_set': {}},
@@ -131,8 +134,8 @@ def test_deduplicate_pairs(mock_sbas_pairs, mock_s3_objects) -> None:
     resolution = '20x4'
     mb_id = s1burst.get_mbid(mb_dic, resolution=resolution)
 
-    pairs: dict[str, dict] = dict()
-    pairs['00000000_00000001'] = dict()
+    pairs: dict[str, dict] = {}
+    pairs['00000000_00000001'] = {}
     pairs['00000000_00000001']['refs'] = [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',
         'S1_000002_IW1_00000000T000000_VV_0001-BURST',
@@ -141,7 +144,7 @@ def test_deduplicate_pairs(mock_sbas_pairs, mock_s3_objects) -> None:
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
     ]
-    pairs['00000001_00000003'] = dict()
+    pairs['00000001_00000003'] = {}
     pairs['00000001_00000003']['refs'] = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
@@ -169,7 +172,7 @@ def test_deduplicate_pairs(mock_sbas_pairs, mock_s3_objects) -> None:
         'S1_000002_IW1_00000003T000000_VV_0001-BURST',
     ]
 
-    assert '00000001_00000003' in pairs_out.keys()
+    assert '00000001_00000003' in pairs_out
     assert pairs_out['00000001_00000003']['refs'] == refs_exp
     assert pairs_out['00000001_00000003']['secs'] == secs_exp
 
@@ -189,10 +192,10 @@ def test_prepare_pairs(mock_deduplicate) -> None:
     with s1burst.MULTIBURST_JSON.open('w') as json_file:
         json.dump(mb_dic, json_file)
 
-    mb_ids = [key for key in mb_dic.keys()]
+    mb_ids = [key for key in mb_dic]
 
-    pairs: dict[str, dict] = dict()
-    pairs['00000000_00000001'] = dict()
+    pairs: dict[str, dict] = {}
+    pairs['00000000_00000001'] = {}
     pairs['00000000_00000001']['refs'] = [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',
         'S1_000002_IW1_00000000T000000_VV_0001-BURST',
@@ -201,7 +204,7 @@ def test_prepare_pairs(mock_deduplicate) -> None:
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
     ]
-    pairs['00000001_00000003'] = dict()
+    pairs['00000001_00000003'] = {}
     pairs['00000001_00000003']['refs'] = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
@@ -216,7 +219,7 @@ def test_prepare_pairs(mock_deduplicate) -> None:
     jobs = s1burst.prepare_pairs(mb_ids)
 
     assert len(jobs) == 2
-    assert 'job_type' in jobs[0].keys()
+    assert 'job_type' in jobs[0]
     assert jobs[0]['job_type'] == 'INSAR_ISCE_MULTI_BURST'
     assert jobs[0]['job_parameters']['reference'] == [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',

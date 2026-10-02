@@ -1,11 +1,22 @@
 """Module to validate multiburst sets."""
 
-import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 import asf_search as asf
+import numpy as np
 import pandas as pd
-from asf_search.exceptions import InvalidMultiBurstCountError, InvalidMultiBurstTopologyError
+
+
+class MultiBurstError(asf.ASFError):
+    """Base MultiBurst Exception, not intended  direct use."""
+
+
+class InvalidMultiBurstCountError(MultiBurstError):
+    """Raise when a MultiBurst dict contains too many or no bursts."""
+
+
+class InvalidMultiBurstTopologyError(MultiBurstError):
+    """Raise when a collection of bursts is disconnected or contains holes."""
 
 
 def get_julian_season(season: tuple[str, str]) -> tuple[int, int]:
@@ -17,14 +28,14 @@ def get_julian_season(season: tuple[str, str]) -> tuple[int, int]:
     Returns:
         season_dates: Tuple with datetimes that represent the season.
     """
-    season_start_ts = pd.Timestamp(datetime.strptime(f'{season[0]}-0001', '%m-%d-%Y'), tz='UTC')
+    season_start_ts = pd.Timestamp(datetime.strptime(f'{season[0]}-0001', '%m-%d-%Y').replace(tzinfo=UTC))
     season_start_day = season_start_ts.timetuple().tm_yday
-    season_end_ts = pd.Timestamp(datetime.strptime(f'{season[1]}-0001', '%m-%d-%Y'), tz='UTC')
+    season_end_ts = pd.Timestamp(datetime.strptime(f'{season[1]}-0001', '%m-%d-%Y').replace(tzinfo=UTC))
     season_end_day = season_end_ts.timetuple().tm_yday
     return (season_start_day, season_end_day)
 
 
-def get_multibursts(burst_ids: list[str]) -> list[asf.MultiBurst]:
+def get_multibursts(burst_ids: list[str]) -> list[dict]:
     """Get Multiburst objects from a list of burst ids.
 
     Args:
@@ -33,23 +44,23 @@ def get_multibursts(burst_ids: list[str]) -> list[asf.MultiBurst]:
     Returns:
         multibursts: List of Multiburst objects associated with the burst IDs.
     """
-    burst_ids = list(set(sorted(burst_ids)))
-    path_dict: dict[str, list] = dict()
+    burst_ids = sorted(set(burst_ids))
+    path_dict: dict[str, list] = {}
     for bid in burst_ids:
         path = bid[0:3]
-        if path not in path_dict.keys():
+        if path not in path_dict:
             path_dict[path] = [bid]
         else:
             path_dict[path].append(bid)
 
     multibursts = []
-    for path in path_dict.keys():
-        multibursts += get_multibursts_path(path_dict[path])
+    for path, value in path_dict.items():
+        multibursts += get_multibursts_path(value)
 
     return multibursts
 
 
-def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
+def get_multibursts_path(burst_ids: list[str]) -> list[dict]:
     """Get Multiburst objects from a list of burst ids from one path.
 
     Args:
@@ -58,11 +69,11 @@ def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
     Returns:
         multibursts: List of Multiburst objects associated with the burst IDs.
     """
-    multiburst_dict: dict[str, tuple] = dict()
+    multiburst_dict: dict[str, tuple] = {}
     for bid in burst_ids:
         id = bid[0:-4]
         swath = bid[-3::]
-        if id not in multiburst_dict.keys():
+        if id not in multiburst_dict:
             multiburst_dict[id] = (swath,)
         elif swath not in multiburst_dict[id]:
             multiburst_dict[id] = tuple(sorted(multiburst_dict[id] + (swath,)))
@@ -87,31 +98,52 @@ def get_multibursts_path(burst_ids: list[str]) -> list[asf.MultiBurst]:
     return multibursts
 
 
-def get_multiburst(multiburst_dict: dict) -> asf.MultiBurst:
-    """Converts a dictionary into a asf.MultiBurst object.
+def check_valid_multiburst(multiburst_dict: dict) -> None:
+    """Check that the burst group is valid (copied from burst2safe).
+
+    Args:
+        multiburst_dict: Dictionary with multiburst set
+    """
+    burst_range = {}
+    tot = 0
+    for i in range(1, 4):
+        bids = sorted({int(key.split('_')[1]) for key in multiburst_dict if f'IW{i}' in multiburst_dict[key]})
+        tot += len(bids)
+        if tot > 30:
+            raise InvalidMultiBurstCountError(f'Only 30 bursts allowed per set, you have {tot}.')
+        if len(bids) > 0:
+            if bids != list(range(min(bids), max(bids) + 1)):
+                raise InvalidMultiBurstTopologyError(f'All bursts must have consecutive burst IDs. Found: {bids}.')
+            burst_range[i] = [min(bids), max(bids)]
+
+    swaths = [key for key in burst_range]
+    if len(swaths) == 1:
+        return
+
+    if 1 in swaths and 3 in swaths and 2 not in swaths:
+        raise InvalidMultiBurstTopologyError('No bursts in swath 2 but in swath 1 and 3')
+    else:
+        swath_combos = [[swaths[i], swaths[i + 1]] for i in range(len(swaths) - 1)]
+        for swath1, swath2 in swath_combos:
+            min_diff = burst_range[swath1][0] - burst_range[swath2][0]
+            if np.abs(min_diff) > 1:
+                raise InvalidMultiBurstTopologyError(f'Products from swaths {swath1} and {swath2} do not overlap')
+            max_diff = burst_range[swath1][1] - burst_range[swath2][1]
+            if np.abs(max_diff) > 1:
+                raise InvalidMultiBurstTopologyError(f'Products from swaths {swath1} and {swath2} do not overlap')
+
+
+def get_multiburst(multiburst_dict: dict) -> dict:
+    """Validates a multiburst dictionary.
 
     Args:
         multiburst_dict: Dictionary where the keys are burst IDs and the elements are the swaths.
 
     Returns:
-        multiburst: asf.MultiBurst object.
+        multiburst: Valid dictionary with multiburst set.
     """
-    try:
-        multiburst = asf.MultiBurst(multiburst_dict)
-    except InvalidMultiBurstTopologyError as e:
-        raise (e)
-    except InvalidMultiBurstCountError as e:
-        raise (e)
-    except ConnectionError:
-        time.sleep(5)
-        multiburst = asf.MultiBurst(multiburst_dict)
-    except ConnectionResetError:
-        time.sleep(5)
-        multiburst = asf.MultiBurst(multiburst_dict)
-    except OSError:
-        time.sleep(5)
-        multiburst = asf.MultiBurst(multiburst_dict)
-    return multiburst
+    check_valid_multiburst(multiburst_dict)
+    return multiburst_dict
 
 
 def split_count(multiburst_dict: dict) -> list[dict]:
@@ -125,11 +157,11 @@ def split_count(multiburst_dict: dict) -> list[dict]:
     """
     cont = 0
     multiburst_dicts = []
-    multiburst_set: dict[str, tuple] = dict()
+    multiburst_set: dict[str, tuple] = {}
     for bid in sorted(multiburst_dict.keys()):
         if (cont + len(multiburst_dict[bid])) > 30:
             multiburst_dicts.append(multiburst_set)
-            multiburst_set = dict()
+            multiburst_set = {}
             cont = 0
         multiburst_set[bid] = multiburst_dict[bid]
         cont += len(multiburst_dict[bid])
@@ -174,13 +206,13 @@ def split_vertical_multiburst(multiburst_dict: dict) -> list[dict]:
     for i, id in enumerate(ids[0:-1]):
         current = int(id.split('_')[1])
         next = int(ids[i + 1].split('_')[1])
-        if not current == (next - 1):
+        if current != (next - 1):
             id_sets.append(ids[previous : (i + 1)])
             previous = i + 1
     id_sets.append(ids[previous::])
     new_sets = []
     for id_set in id_sets:
-        new_dict = dict()
+        new_dict = {}
         for bid in id_set:
             new_dict[bid] = multiburst_dict[bid]
         new_sets.append(new_dict)
@@ -196,20 +228,20 @@ def fill_holes(multiburst_dict: dict) -> dict:
     Returns:
         multiburst_dict: Dictionary with complemented set.
     """
-    for bid in multiburst_dict.keys():
-        if 'IW1' in multiburst_dict[bid] and 'IW3' in multiburst_dict[bid] and 'IW2' not in multiburst_dict[bid]:
-            multiburst_dict[bid] = tuple(sorted(multiburst_dict[bid] + ('IW2',)))
-    ranges = dict()
+    for bid, value in multiburst_dict.items():
+        if 'IW1' in value and 'IW3' in value and 'IW2' not in value:
+            multiburst_dict[bid] = tuple(sorted(value + ('IW2',)))
+    ranges = {}
     for swath in ['IW1', 'IW2', 'IW3']:
-        ids = sorted(list(set([bid for bid in multiburst_dict.keys() if swath in multiburst_dict[bid]])))
+        ids = sorted({bid for bid in multiburst_dict if swath in multiburst_dict[bid]})
         if len(ids) > 0:
             ranges[swath] = (int(ids[0].split('_')[1]), int(ids[-1].split('_')[1]))
             dif = abs(int(ids[0].split('_')[1]) - int(ids[-1].split('_')[1]))
-            if not dif == (len(ids) - 1):
+            if dif != (len(ids) - 1):
                 for i, id in enumerate(ids[0:-1]):
                     current = int(id.split('_')[1])
                     next = int(ids[i + 1].split('_')[1])
-                    if not current == next - 1:
+                    if current != next - 1:
                         for j in range(current + 1, next):
                             multiburst_dict[id[0:4] + str(j).zfill(6)] = tuple(
                                 sorted(multiburst_dict[id[0:4] + str(j).zfill(6)] + (swath,))
@@ -227,11 +259,11 @@ def get_ranges(multiburst_dict: dict) -> tuple[dict, dict]:
         ranges: Dictionary with tuple with the initial and final burst.
         ids: Dictionary with list of burst IDs in the multiburst set.
     """
-    ranges = dict()
-    ids = dict()
+    ranges = {}
+    ids = {}
     swaths = ['IW1', 'IW2', 'IW3']
     for swath in swaths:
-        ids[swath] = sorted(list(set([bid for bid in multiburst_dict.keys() if swath in multiburst_dict[bid]])))
+        ids[swath] = sorted({bid for bid in multiburst_dict if swath in multiburst_dict[bid]})
         if len(ids[swath]) > 0:
             ranges[swath] = (int(ids[swath][0].split('_')[1]), int(ids[swath][-1].split('_')[1]))
     return ranges, ids
@@ -253,7 +285,7 @@ def complete_sides(multiburst_dict: dict) -> list[dict]:
             i = 0
         current = swaths[i]
         next = swaths[i + 1]
-        if current not in ranges.keys() or next not in ranges.keys():
+        if current not in ranges or next not in ranges:
             continue
         path = ids[current][0][0:3]
         split = abs(ranges[current][0] - ranges[next][0]) > 3 or abs(ranges[current][1] - ranges[next][1]) > 3
@@ -292,22 +324,22 @@ def split_horizontal_multiburst(multiburst_dict: dict) -> list[dict]:
     Returns:
         multiburst_dicts: List with the splitted multiburst set.
     """
-    ranges, ids = get_ranges(multiburst_dict)
+    ranges, _ = get_ranges(multiburst_dict)
 
-    if 'IW1' not in ranges.keys() or 'IW2' not in ranges.keys():
+    if 'IW1' not in ranges or 'IW2' not in ranges:
         split12 = False
     else:
         split12 = abs(ranges['IW1'][0] - ranges['IW2'][0]) > 1 or abs(ranges['IW1'][1] - ranges['IW2'][1]) > 1
-    if 'IW2' not in ranges.keys() or 'IW3' not in ranges.keys():
+    if 'IW2' not in ranges or 'IW3' not in ranges:
         split23 = False
     else:
         split23 = abs(ranges['IW2'][0] - ranges['IW3'][0]) > 1 or abs(ranges['IW2'][1] - ranges['IW3'][1]) > 1
     if split12 and split23:
-        iw1 = dict()
-        iw2 = dict()
-        iw3 = dict()
-        for bid in multiburst_dict.keys():
-            swaths = multiburst_dict[bid]
+        iw1 = {}
+        iw2 = {}
+        iw3 = {}
+        for bid, value in multiburst_dict.items():
+            swaths = value
             if 'IW1' in swaths:
                 iw1[bid] = ('IW1',)
             if 'IW2' in swaths:
@@ -316,37 +348,37 @@ def split_horizontal_multiburst(multiburst_dict: dict) -> list[dict]:
                 iw3[bid] = ('IW3',)
         return [iw1, iw2, iw3]
     elif split12:
-        iw1 = dict()
-        rest: dict[str, tuple] = dict()
-        for bid in multiburst_dict.keys():
-            swaths = multiburst_dict[bid]
+        iw1 = {}
+        rest: dict[str, tuple] = {}
+        for bid, value in multiburst_dict.items():
+            swaths = value
             if 'IW1' in swaths:
                 iw1[bid] = ('IW1',)
             if 'IW2' in swaths:
-                if bid in rest.keys():
+                if bid in rest:
                     rest[bid] = tuple(sorted(rest[bid] + ('IW2',)))
                 else:
                     rest[bid] = ('IW2',)
             if 'IW3' in swaths:
-                if bid in rest.keys():
+                if bid in rest:
                     rest[bid] = tuple(sorted(rest[bid] + ('IW3',)))
                 else:
                     rest[bid] = ('IW3',)
         return [iw1, rest]
     elif split23:
-        iw3 = dict()
-        rest = dict()
-        for bid in multiburst_dict.keys():
-            swaths = multiburst_dict[bid]
+        iw3 = {}
+        rest = {}
+        for bid, value in multiburst_dict.items():
+            swaths = value
             if 'IW3' in swaths:
                 iw3[bid] = ('IW3',)
             if 'IW1' in swaths:
-                if bid in rest.keys():
+                if bid in rest:
                     rest[bid] = tuple(sorted(rest[bid] + ('IW1',)))
                 else:
                     rest[bid] = ('IW1',)
             if 'IW2' in swaths:
-                if bid in rest.keys():
+                if bid in rest:
                     rest[bid] = tuple(sorted(rest[bid] + ('IW2',)))
                 else:
                     rest[bid] = ('IW2',)

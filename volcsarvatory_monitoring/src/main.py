@@ -3,7 +3,6 @@
 import json
 import logging
 import os
-import random
 import subprocess
 import zipfile
 from pathlib import Path
@@ -47,8 +46,7 @@ def check_id(product_id: str) -> bool:
         qualifies: The product ID corresponds to a S1 burst.
     """
     if product_id.startswith('S1_') and 'BURST' in product_id:
-        if '_VV_' in product_id or '_HH_' in product_id:
-            return True
+        return '_VV_' in product_id or '_HH_' in product_id
     return False
 
 
@@ -151,7 +149,7 @@ def get_secret(key: str) -> str:
         # Handle binary secrets if needed
     except Exception as e:
         print(f'Error retrieving secret: {e}')
-        raise e
+        raise
     return private_key_str
 
 
@@ -256,17 +254,22 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
         AWS SQS batchItemFailures JSON response including messages that failed to be processed
     """
     batch_item_failures = []
+    bucket_name = os.environ.get('PUBLISH_BUCKET')
     for record in event['Records']:
         try:
             body = json.loads(record['body'])
             message = body['Message']
             if 'New AOI' in message or 'New Test' in message:
                 mb_ids = json.loads(MULTIBURST_JSON.read_text())
-                keys = [key for key in mb_ids.keys()]
+                keys = [key for key in mb_ids]
                 if 'New Test' in message:
-                    keys = random.sample(keys, 3)
+                    keys = keys[-8::]
                 for mb_id in keys:
                     publish_sns_multiburst(mb_id)
+                current_dir = Path.cwd()
+                for file_path in current_dir.glob('coherence*.pdf'):
+                    s3 = boto3.client('s3')
+                    s3.upload_file(file_path.name, bucket_name, f'aux/network_{mb_id}.pdf')
             else:
                 message = json.loads(message)
                 mb_id = product_mbid_from_message(message)
@@ -275,6 +278,8 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 if len(jobs) > 0:
                     _ = submit_jobs(jobs)
                     log.log(logging.INFO, f'Jobs submitted for {mb_id}: {len(jobs)}')
+                    s3 = boto3.client('s3')
+                    s3.upload_file('network.pdf', bucket_name, f'aux/network_{mb_id}.pdf')
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})
