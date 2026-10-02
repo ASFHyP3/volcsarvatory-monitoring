@@ -1,7 +1,7 @@
 """Module to find SBAS for a multiburst set."""
 
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import asf_search as asf
 import geopandas as gpd
@@ -41,7 +41,7 @@ def first_date_multiburst(dic: dict, start: str | None = None) -> str:
     Returns:
         date: String with the date of the first acquisition.
     """
-    keys = [key for key in dic.keys()]
+    keys = [key for key in dic]
     burst_id = keys[0] + '_' + dic[keys[0]][0]
 
     if start is not None:
@@ -65,8 +65,8 @@ def check_available_acquisitions(
     Returns:
         check: True if there are acquisitions for all the bursts, False otherwise
     """
-    for frame in dic.keys():
-        for swath in dic[frame]:
+    for frame, value in dic.items():
+        for swath in value:
             bid = f'{frame}_{swath}'
             res = asf.search(fullBurstID=bid, start=start, end=end, polarization=asf.POLARIZATION.VV)
             if len(res) == 0:
@@ -92,12 +92,14 @@ def get_multi_stack(
         all_burst_stacks: Stack from union of multiple burst stacks
     """
     burst_stacks = []
-    tot_bursts = sum([len(dic[key]) for key in dic.keys()])
-    for key in dic.keys():
-        burst_ids = [f'{key}_{swath}' for swath in dic[key]]
+    tot_bursts = sum([len(dic[key]) for key in dic])
+    for key, value in dic.items():
+        burst_ids = [f'{key}_{swath}' for swath in value]
         for bid in burst_ids:
             first_date = first_date_burst(bid)
-            end_date = (datetime.strptime(first_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = (datetime.strptime(first_date, '%Y-%m-%d').replace(tzinfo=UTC) + timedelta(days=1)).strftime(
+                '%Y-%m-%d'
+            )
             ref = asf.search(
                 fullBurstID=bid,
                 start=first_date,
@@ -139,10 +141,10 @@ def get_target_dates(comp: list[datetime], bridge_target: str, tbaseline: int) -
     Returns:
         dates_target: Dates to connect different components.
     """
-    years = list(set([date.strftime('%Y') for date in comp]))
+    years = list({date.strftime('%Y') for date in comp})
     dates_target = []
     for year in years:
-        target = datetime.strptime(f'{year}-{bridge_target}', '%Y-%m-%d')
+        target = datetime.strptime(f'{year}-{bridge_target}', '%Y-%m-%d').replace(tzinfo=UTC)
         s = [date for date in comp if abs((date - target).days) <= tbaseline]
         if len(s) > 0:
             dates_target.append(s)
@@ -185,7 +187,7 @@ def connect_components(network: nx.Graph, bridge_date: str | None, tbaseline: in
     components = [network.subgraph(c).copy() for c in nx.connected_components(network)]
     dates_components = []
     for component in components:
-        dates = sorted(list(set([key for key in component.nodes])))
+        dates = sorted({key for key in component.nodes})
         dates_components.append(dates)
     # Get the median date on each network
     mids = [dates_component[len(dates_component) // 2] for dates_component in dates_components]
@@ -251,11 +253,11 @@ def get_network(pairs: dict) -> nx.Graph:
         G: Graph that represents the SBAS.
     """
     G: nx.Graph = nx.Graph()
-    for key in pairs.keys():
+    for key in pairs:
         ref_date = key.split('_')[0]
         sec_date = key.split('_')[1]
-        tref = datetime.strptime(ref_date, '%Y%m%d')
-        tsec = datetime.strptime(sec_date, '%Y%m%d')
+        tref = datetime.strptime(ref_date, '%Y%m%d').replace(tzinfo=UTC)
+        tsec = datetime.strptime(sec_date, '%Y%m%d').replace(tzinfo=UTC)
         G.add_edge(tref, tsec)
 
     return G
@@ -272,11 +274,11 @@ def plot_network(pairs: dict) -> None:
     """
     tacqs, pacqs = [], []
     plt.figure(figsize=(5, 2))
-    for key in pairs.keys():
+    for key in pairs:
         ref_date = key.split('_')[0]
         sec_date = key.split('_')[1]
-        tref = datetime.strptime(ref_date, '%Y%m%d')
-        tsec = datetime.strptime(sec_date, '%Y%m%d')
+        tref = datetime.strptime(ref_date, '%Y%m%d').replace(tzinfo=UTC)
+        tsec = datetime.strptime(sec_date, '%Y%m%d').replace(tzinfo=UTC)
         pref = pairs[key]['pbaselines'][0]
         psec = pairs[key]['pbaselines'][1]
         plt.plot([tref, tsec], [pref, psec], c='C0', lw=0.1, zorder=2)  # type: ignore
@@ -309,16 +311,16 @@ def connect_network(pairs: dict, target: str | None, tbaseline: int) -> dict[str
         pairs_add = connect_components(G, bridge_date=target, tbaseline=tbaseline)
         for apair in pairs_add:
             tref, tsec = apair
-            stref = apair[0].strftime('%Y%m%d')
-            stsec = apair[1].strftime('%Y%m%d')
+            stref = tref.strftime('%Y%m%d')
+            stsec = tsec.strftime('%Y%m%d')
             key = f'{stref}_{stsec}'
-            for cur_key in pairs.keys():
+            for cur_key in pairs:
                 if stref in cur_key:
                     break
-            pairs[key] = dict()
+            pairs[key] = {}
             pairs[key]['refs'] = pairs[cur_key]['refs'].copy()
             pairs[key]['pbaselines'] = [pairs[cur_key]['pbaselines'][0]]
-            for cur_key in pairs.keys():
+            for cur_key in pairs:
                 if stsec in cur_key:
                     break
             pairs[key]['secs'] = pairs[cur_key]['secs'].copy()
@@ -354,7 +356,7 @@ def build_sbas_pairs(
     fin = time.time()
     print('Time to get multi stack', fin - ini)
     ugids = stack['orbit'].unique().tolist()
-    pairs = dict()
+    pairs = {}
     tacqs, pacqs = [], []
     ini = time.time()
     for i, sec_gid in enumerate(ugids[0:-1]):
@@ -370,19 +372,19 @@ def build_sbas_pairs(
             mask = np.logical_and(mask, (pairs_gid['diff'] - tbaseline) / 365 < (bridge))
 
             valid = pairs_gid[mask]
-            pair = dict()
+            pair = {}
             pair['refs'] = list(valid['sceneName_ref'])
             pair['secs'] = list(valid['sceneName_sec'])
             if len(pair['refs']) > 0:
-                ref_date = list(pd.to_datetime(pairs_gid['stopTime_ref']).dt.strftime('%Y%m%d'))[0]
-                sec_date = list(pd.to_datetime(pairs_gid['stopTime_sec']).dt.strftime('%Y%m%d'))[0]
+                ref_date = pd.to_datetime(pairs_gid['stopTime_ref']).dt.strftime('%Y%m%d').iloc[0]
+                sec_date = pd.to_datetime(pairs_gid['stopTime_sec']).dt.strftime('%Y%m%d').iloc[0]
                 key = f'{ref_date}_{sec_date}'
                 pref = float(np.mean(pairs_gid['perpendicularBaseline_ref']))
                 psec = float(np.mean(pairs_gid['perpendicularBaseline_sec']))
                 pair['pbaselines'] = [pref, psec]
                 pairs[key] = pair
-                tref = datetime.strptime(ref_date, '%Y%m%d')
-                tsec = datetime.strptime(sec_date, '%Y%m%d')
+                tref = datetime.strptime(ref_date, '%Y%m%d').replace(tzinfo=UTC)
+                tsec = datetime.strptime(sec_date, '%Y%m%d').replace(tzinfo=UTC)
                 if tref not in tacqs:
                     tacqs.append(tref)
                     pacqs.append(pref)
@@ -418,8 +420,8 @@ def build_sbas_pairs_default(
     Returns:
         pairs: Dictionary with the reference and secondary acquisitions.
     """
-    end = datetime.now()
-    start_date = datetime.strptime(start, '%Y-%m-%d')
+    end = datetime.now(UTC)
+    start_date = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=UTC)
     start_last = end - timedelta(days=365)
     years = int((end - start_date).days / 365) + 1
     startt = start_date
@@ -436,7 +438,7 @@ def build_sbas_pairs_default(
         )
         startt = startt + timedelta(days=365)
         for i, pair in enumerate(pairs_add.keys()):
-            if pair not in pairs.keys():
+            if pair not in pairs:
                 pairs[pair] = pairs_add[pair]
         if isend:
             break
@@ -456,7 +458,7 @@ def build_sbas_pairs_default(
             bridge=bridge,
         )
         for i, pair in enumerate(pairs_add.keys()):
-            if pair not in pairs.keys():
+            if pair not in pairs:
                 pairs[pair] = pairs_add[pair]
     pairs = connect_network(pairs, target, tbaseline=tbaseline)
 
@@ -484,9 +486,9 @@ def build_sbas_pairs_custom(
     Returns:
         dpairs: Dictionary with the reference and secondary acquisitions.
     """
-    pairs: dict[str, dict] = dict()
-    for season_yr in season.keys():
-        season_tmp = season[season_yr]
+    pairs: dict[str, dict] = {}
+    for season_yr, value in season.items():
+        season_tmp = value
 
         month_start = season_tmp[0].split('-')[0]
         day_start = season_tmp[0].split('-')[1]
