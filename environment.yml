@@ -1,4 +1,4 @@
-name: volcsarvatory-monitoring
+name: volcsarvatory-monitoring-dep
 dependencies:
   - python=3.12
   - pip

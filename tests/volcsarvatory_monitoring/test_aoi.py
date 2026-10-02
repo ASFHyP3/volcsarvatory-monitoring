@@ -49,6 +49,6 @@ def test_get_burst_ids(mock_asf_search, mock_load, asf_product_factory, asf_stac
 
     burst_dic = aoi.get_burst_ids()
 
-    assert '037_077634_IW1' in burst_dic.keys()
+    assert '037_077634_IW1' in burst_dic
     assert 'test' in burst_dic['037_077634_IW1']
     aoi.PARQUET_FILE.unlink()

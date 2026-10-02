@@ -2,8 +2,8 @@ import pairs
 
 
 def test_prepare_multiburst_jobs() -> None:
-    dpairs: dict[str, dict] = dict()
-    dpairs['00000000_00000001'] = dict()
+    dpairs: dict[str, dict] = {}
+    dpairs['00000000_00000001'] = {}
     dpairs['00000000_00000001']['refs'] = [
         'S1_000001_IW1_00000000T000000_VV_0001-BURST',
         'S1_000002_IW1_00000000T000000_VV_0001-BURST',
@@ -12,7 +12,7 @@ def test_prepare_multiburst_jobs() -> None:
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',
     ]
-    dpairs['00000001_00000003'] = dict()
+    dpairs['00000001_00000003'] = {}
     dpairs['00000001_00000003']['refs'] = [
         'S1_000001_IW1_00000001T000000_VV_0001-BURST',
         'S1_000002_IW1_00000001T000000_VV_0001-BURST',

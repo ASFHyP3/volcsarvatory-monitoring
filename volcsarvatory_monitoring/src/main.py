@@ -46,8 +46,7 @@ def check_id(product_id: str) -> bool:
         qualifies: The product ID corresponds to a S1 burst.
     """
     if product_id.startswith('S1_') and 'BURST' in product_id:
-        if '_VV_' in product_id or '_HH_' in product_id:
-            return True
+        return '_VV_' in product_id or '_HH_' in product_id
     return False
 
 
@@ -150,7 +149,7 @@ def get_secret(key: str) -> str:
         # Handle binary secrets if needed
     except Exception as e:
         print(f'Error retrieving secret: {e}')
-        raise e
+        raise
     return private_key_str
 
 
@@ -262,7 +261,7 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
             message = body['Message']
             if 'New AOI' in message or 'New Test' in message:
                 mb_ids = json.loads(MULTIBURST_JSON.read_text())
-                keys = [key for key in mb_ids.keys()]
+                keys = [key for key in mb_ids]
                 if 'New Test' in message:
                     keys = keys[-8::]
                 for mb_id in keys:
