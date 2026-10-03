@@ -34,7 +34,7 @@ def prepare_multiburst_jobs(
         looks = '20x4'
 
     insar_jobs = []
-    for pair in pairs.keys():
+    for pair in pairs:
         prepared_job: dict = deepcopy(MULTIBURST_JOB_TEMPLATE)
         prepared_job['name'] = project_name
         prepared_job['job_parameters']['reference'] = pairs[pair]['refs']

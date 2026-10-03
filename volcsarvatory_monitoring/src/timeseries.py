@@ -3,7 +3,7 @@
 import os
 import shutil
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import boto3
 import h5py
@@ -56,8 +56,8 @@ def prepare_split_mintpy_jobs(mb_ids: list[str], window: int = 730) -> list[dict
 
     for mb_id in mb_ids:
         pairs = sorted(list_pairs_s3(mb_id))
-        start_ts = datetime.strptime(pairs[0].split('_')[0], '%Y%m%d')
-        end_ts = datetime.strptime(pairs[-1].split('_')[-1], '%Y%m%d')
+        start_ts = datetime.strptime(pairs[0].split('_')[0], '%Y%m%d').replace(tzinfo=UTC)
+        end_ts = datetime.strptime(pairs[-1].split('_')[-1], '%Y%m%d').replace(tzinfo=UTC)
         ts_segments = int((end_ts - start_ts).days / window) + 1
         for seg in range(ts_segments):
             start_date = start_ts + timedelta(days=seg * 730)
@@ -168,11 +168,11 @@ def merge_timeseries(reference: str, h5file: str, output: str = 'newtimeseries.h
     # shape_sec = (timeseries.shape[1], timeseries.shape[2])
     h5f.close()
 
-    newdates = list(dates1) + sorted(list(set(dates2) - set(dates1)))
+    newdates = list(dates1) + sorted(set(dates2) - set(dates1))
     intdates = set(dates1).intersection(set(dates2))
     index1 = dates1.index(sorted(intdates)[int(len(intdates) / 2)])
     index2 = dates2.index(sorted(intdates)[int(len(intdates) / 2)])
-    index3 = dates2.index(sorted(intdates)[-1])
+    index3 = dates2.index(max(intdates))
     newtimeseries = np.ones((timeseries.shape[0], timeseries1.shape[1], timeseries1.shape[2])) * np.nan
     for i in range(timeseries.shape[0]):
         interp_sec = RegularGridInterpolator(

@@ -1,7 +1,7 @@
 """Module to add aois to geoparquet."""
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import asf_search as asf
@@ -76,9 +76,9 @@ def get_coherence(extent: list) -> dict[datetime, float]:
     Returns:
         cvalues: Expected coherence values for each season.
     """
-    coherence: dict[str, dict] = dict()
-    cvalues: dict[datetime, float] = dict()
-    num: dict[datetime, int] = dict()
+    coherence: dict[str, dict] = {}
+    cvalues: dict[datetime, float] = {}
+    num: dict[datetime, int] = {}
     lons = extent[0:2]
     lats = extent[2::]
     minx, miny, maxx, maxy = min(lons), min(lats), max(lons), max(lats)
@@ -86,7 +86,7 @@ def get_coherence(extent: list) -> dict[datetime, float]:
     nseasons = ['01', '04', '07', '10']
     temporals = [str(i).zfill(2) for i in [6, 12, 18, 24, 36, 48]]
     for temp in temporals:
-        coherence[temp] = dict()
+        coherence[temp] = {}
         for i, season in enumerate(seasons):
             uri = f's3://asf-search-coh/global_coh_100ppd_11367x4367_Zarrv2/Global_{season}_vv_COH{temp}_100ppd.zarr'
             ds = xr.open_zarr(fsspec.get_mapper(uri, s3={'anon': True}), consolidated=False)
@@ -100,19 +100,18 @@ def get_coherence(extent: list) -> dict[datetime, float]:
                         minx=minx - 1, miny=miny - 1, maxx=maxx + 1, maxy=maxy + 1, allow_one_dimensional_raster=True
                     )
                     coherence[temp][season] = subset.coherence.mean().compute().item()
-                date = datetime.strptime(f'2019-{nseasons[i]}-01', '%Y-%m-%d')
+                date = datetime.strptime(f'2019-{nseasons[i]}-01', '%Y-%m-%d').replace(tzinfo=UTC)
                 if not np.isnan(coherence[temp][season]):
-                    if date not in cvalues.keys():
+                    if date not in cvalues:
                         cvalues[date] = coherence[temp][season]
                         num[date] = 1
                     else:
                         cvalues[date] += coherence[temp][season]
                         num[date] += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(e)
-                pass
-    for key in cvalues.keys():
-        cvalues[key] = cvalues[key] / (100 * num[key])
+    for key, value in cvalues.items():
+        cvalues[key] = value / (100 * num[key])
     plot_coherence(cvalues)
     return cvalues
 
@@ -147,18 +146,21 @@ def get_season(id: str, extent: list) -> tuple[datetime, tuple]:
     """
     coherence = get_coherence(extent)
 
-    start = datetime.strptime('2019-01-01', '%Y-%m-%d')
-    days = [(date - start).days for date in coherence.keys()]
+    start = datetime.strptime('2019-01-01', '%Y-%m-%d').replace(tzinfo=UTC)
+    days = [(date - start).days for date in coherence]
     if len(days) == 0:
         print('No coherence values using 01-01 to 12-31 as season and 06-01 as target')
-        season = (datetime.strptime('2019-01-01', '%Y-%m-%d'), datetime.strptime('2019-12-01', '%Y-%m-%d'))
-        target = datetime.strptime('2019-06-01', '%Y-%m-%d')
+        season = (
+            datetime.strptime('2019-01-01', '%Y-%m-%d').replace(tzinfo=UTC),
+            datetime.strptime('2019-12-01', '%Y-%m-%d').replace(tzinfo=UTC),
+        )
+        target = datetime.strptime('2019-06-01', '%Y-%m-%d').replace(tzinfo=UTC)
     days += [days[-1]]
-    values = [coherence[key] for key in coherence.keys()]
+    values = [coherence[key] for key in coherence]
     values += [values[-1]]
     initial_guess = [max(values), np.mean(days), np.std(days), 0, 0]
     try:
-        parameters, covariance = curve_fit(normal_curve, days, values, p0=np.array(initial_guess), maxfev=10000)
+        parameters, _ = curve_fit(normal_curve, days, values, p0=np.array(initial_guess), maxfev=10000)
     except RuntimeError as e:
         print(f'The normal curve could not be fitted: {e}')
         parameters = initial_guess
@@ -168,7 +170,7 @@ def get_season(id: str, extent: list) -> tuple[datetime, tuple]:
     ran = int(portion * 365)
     season = (target - timedelta(days=int(ran)), target + timedelta(days=int(ran)))
     all_days = np.arange(0, 366)
-    normal = dict()
+    normal = {}
     normal['values'] = normal_curve(all_days, fitted_amp, fitted_mean, fitted_std, fitted_xoff, fitted_yoff)
     normal['days'] = np.array([start + timedelta(days=int(day)) for day in all_days])
     plot_coherence(coherence, target, season, normal, name=id)
@@ -194,12 +196,12 @@ def plot_coherence(
     """
     import matplotlib.dates as mdates
 
-    dates = [key for key in coherence.keys()]
-    values = [coherence[key] for key in coherence.keys()]
+    dates = [key for key in coherence]
+    values = [coherence[key] for key in coherence]
     if season is not None:
         seasont = list(season)
-        season0 = datetime.strptime(seasont[0].strftime('2019-%m-%d'), '%Y-%m-%d')
-        season1 = datetime.strptime(seasont[1].strftime('2019-%m-%d'), '%Y-%m-%d')
+        season0 = datetime.strptime(seasont[0].strftime('2019-%m-%d'), '%Y-%m-%d').replace(tzinfo=UTC)
+        season1 = datetime.strptime(seasont[1].strftime('2019-%m-%d'), '%Y-%m-%d').replace(tzinfo=UTC)
         season = (season0, season1)
     plt.figure(figsize=(4, 3))
     if normal is not None:
@@ -265,7 +267,7 @@ def get_burst_ids(aoi_id: str | None = None, aoi_file: str | None = None) -> dic
     bursts_gdf['area_burst'] = intersection_utm.area.to_numpy() / bursts_utm.area.to_numpy()
 
     bursts_gdf = bursts_gdf[(bursts_gdf['area_aoi'] > 0.3) | (bursts_gdf['area_burst'] > 0.05)]
-    result = dict()
+    result = {}
     for bid in bursts_gdf['id'].unique():
         asf_res = asf.search(fullBurstID=bid)
         if len(asf_res) > 1 or (len(asf_res) == 1 and asf_res[0].properties['stopTime'] is not None):
