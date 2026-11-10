@@ -13,7 +13,7 @@ on:
 
 jobs:
   call-version-info-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-version-info.yml@v0.22.0
+    uses: ASFHyP3/actions/.github/workflows/reusable-version-info.yml@v0.22.1
     permissions:
       contents: read
     with:
@@ -24,7 +24,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: ASFHyP3/actions/.github/workflows/reusable-docker-ecr.yml@v0.22.0
+    uses: ASFHyP3/actions/.github/workflows/reusable-docker-ecr.yml@v0.22.1
     with:
       fetch_depth: 1
       aws_region: ${{ vars.AWS_REGION }}
