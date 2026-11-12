@@ -559,34 +559,6 @@ Krakatoa:
   target_date:
   bridge_years:
   resolution:
-MountSpurrLandslide:
-  AOI:
-  - -152.36
-  - -151.98
-  - 61.14
-  - 61.31
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '9-10'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountLaPerouseLandslide:
-  AOI:
-  - -137.24
-  - -136.91
-  - 58.47
-  - 58.65
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '2-16'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
 MountSteeleLandslide:
   AOI:
   - -140.41
@@ -601,48 +573,6 @@ MountSteeleLandslide:
     2015:
     - '1-1'
     - '10-12'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-IliamnaLandslide:
-  AOI:
-  - -153.26
-  - -152.9
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '1-28'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-IliamnaLandslide:
-  AOI:
-  - -153.26
-  - -152.9
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '10-3'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-IliamnaLandslide:
-  AOI:
-  - -153.24
-  - -152.88
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '7-20'
   target_date:
   bridge_years:
   resolution: '5x1'
@@ -663,46 +593,6 @@ TaanFjordLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-RedGlacier,IliamnaLandslide:
-  AOI:
-  - -153.25
-  - -152.9
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '5-22'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-LamplughGlaciermainLandslide:
-  AOI:
-  - -137.06
-  - -136.72
-  - 58.69
-  - 58.87
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '6-28'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
 RedoubtLandslide:
   AOI:
   - -152.94
@@ -720,98 +610,7 @@ RedoubtLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-MountSpurr1Landslide:
-  AOI:
-  - -152.36
-  - -151.98
-  - 61.14
-  - 61.31
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '8-16'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSpurr2Landslide:
-  AOI:
-  - -152.36
-  - -151.98
-  - 61.14
-  - 61.31
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '8-16'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSulzer3Landslide:
-  AOI:
-  - -141.75
-  - -141.37
-  - 61.55
-  - 61.73
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '7-31'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSulzer3secondaryLandslide:
-  AOI:
-  - -141.75
-  - -141.37
-  - 61.55
-  - 61.73
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '7-31'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSulzer4Landslide:
-  AOI:
-  - -141.75
-  - -141.37
-  - 61.55
-  - 61.73
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '7-31'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSulzer5Landslide:
+MountSulzerLandslide:
   AOI:
   - -141.75
   - -141.37
@@ -914,36 +713,7 @@ CoweeCreekLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-MountJoffre1Landslide:
-  AOI:
-  - -122.59
-  - -122.31
-  - 50.26
-  - 50.43
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '5-13'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountJoffre2Landslide:
+MountJoffreLandslide:
   AOI:
   - -122.59
   - -122.31
@@ -972,7 +742,7 @@ MountJoffre2Landslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-RedGlacier,IliamnaLandslide:
+IliamnaLandslide:
   AOI:
   - -153.25
   - -152.89
@@ -1033,7 +803,7 @@ TakuRiverLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-ElliotCreek1Landslide:
+ElliotCreekLandslide:
   AOI:
   - -124.75
   - -124.47
@@ -1062,84 +832,6 @@ ElliotCreek1Landslide:
     2020:
     - '1-1'
     - '11-28'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-IliamnaLandslide:
-  AOI:
-  - -153.28
-  - -152.92
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '3-6'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-RedGlacier,IliamnaLandslide:
-  AOI:
-  - -153.25
-  - -152.9
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '7-11'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-UmbrellaGlacier,IliamnaLandslide:
-  AOI:
-  - -153.27
-  - -152.91
-  - 59.94
-  - 60.12
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '3-26'
   target_date:
   bridge_years:
   resolution: '5x1'
@@ -1200,73 +892,6 @@ MountSpurrLandslide:
     - '12-31'
     2020:
     - '1-1'
-    - '12-10'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSpurrLandslide:
-  AOI:
-  - -152.44
-  - -152.06
-  - 61.21
-  - 61.39
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '12-31'
-    2020:
-    - '1-1'
-    - '12-31'
-    2021:
-    - '1-1'
-    - '4-7'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSpurrLandslide:
-  AOI:
-  - -152.44
-  - -152.06
-  - 61.21
-  - 61.39
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '12-31'
-    2020:
-    - '1-1'
     - '12-31'
     2021:
     - '1-1'
@@ -1274,68 +899,7 @@ MountSpurrLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-BarryArmLandslide:
-  AOI:
-  - -148.35
-  - -147.98
-  - 61.06
-  - 61.25
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '12-31'
-    2020:
-    - '1-1'
-    - '10-5'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-MountSpurrLandslide:
-  AOI:
-  - -152.43
-  - -152.05
-  - 61.21
-  - 61.39
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '7-15'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-Orville-WilburLandslide:
+OrvilleWilburLandslide:
   AOI:
   - -137.44
   - -137.1
@@ -1416,38 +980,6 @@ IsanotskiLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-ElliotCreek2Landslide:
-  AOI:
-  - -124.74
-  - -124.47
-  - 50.87
-  - 51.06
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '12-31'
-    2020:
-    - '1-1'
-    - '11-28'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
 LowellPointLandslide:
   AOI:
   - -149.62
@@ -1483,38 +1015,6 @@ LowellPointLandslide:
     2022:
     - '1-1'
     - '5-8'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-BarryArmLandslide:
-  AOI:
-  - -148.13
-  - -147.76
-  - 61.15
-  - 61.33
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '12-31'
-    2017:
-    - '1-1'
-    - '12-31'
-    2018:
-    - '1-1'
-    - '12-31'
-    2019:
-    - '1-1'
-    - '12-31'
-    2020:
-    - '1-1'
-    - '10-17'
   target_date:
   bridge_years:
   resolution: '5x1'
@@ -1670,7 +1170,7 @@ SnowpatchSpireLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
-PetersDome,DenaliNationalParkLandslide:
+DenaliNationalParkLandslide:
   AOI:
   - -151.39
   - -150.98
@@ -1752,26 +1252,6 @@ PedersenLagoonLandslide:
     2024:
     - '1-1'
     - '8-7'
-  target_date:
-  bridge_years:
-  resolution: '5x1'
-LamplughGlaciersecondaryLandslide:
-  AOI:
-  - -137.05
-  - -136.72
-  - 58.65
-  - 58.84
-  temporal_baseline:
-  season:
-    2014:
-    - '1-1'
-    - '12-31'
-    2015:
-    - '1-1'
-    - '12-31'
-    2016:
-    - '1-1'
-    - '6-28'
   target_date:
   bridge_years:
   resolution: '5x1'
