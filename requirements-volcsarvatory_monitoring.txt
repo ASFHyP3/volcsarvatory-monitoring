@@ -3,8 +3,8 @@ cartopy==0.26.0
 geopandas==1.2.0
 h5py==3.16.0
 hyp3-sdk==7.7.8
-pandas==3.1.0
-pyarrow==26.0.0
+pandas==3.1.1
+pyarrow==26.0.1
 pystac-client==0.9.1
 requests==2.34.2
 rioxarray==0.23.0
@@ -12,9 +12,9 @@ ruamel.yaml==0.19.1
 scipy==1.18.1
 shapely==2.2.0
 numpy==2.5.4
-boto3==1.43.117
+boto3==1.43.126
 xarray==2026.9.0
 fsspec==2026.9.0
 s3fs==2026.9.0
-zarr==3.4.1
+zarr==3.4.2
 networkx==3.7
