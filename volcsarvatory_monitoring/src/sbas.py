@@ -583,7 +583,7 @@ def build_sbas_pairs_custom(
         start_yr = f'{season_yr}-{month_start.zfill(2)}-{day_start.zfill(2)}'
         end_yr = f'{season_yr}-{month_end.zfill(2)}-{day_end.zfill(2)}'
         if check_available_acquisitions(dic, start_yr, end_yr):
-            newpairs, duration = build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)
+            newpairs, _ = build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)
             pairs = pairs | newpairs
 
     pairs = connect_network(pairs, target=target, tbaseline=tbaseline)
