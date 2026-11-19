@@ -406,6 +406,7 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
         bridge = mbs_dic[mb_id]['bridge_years']
         resolution = mbs_dic[mb_id]['resolution']
         try:
+            mb_set['mb_id'] = mb_id
             dpairs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
         except RuntimeError as e:
             print(f'No pairs for {mb_id}')
