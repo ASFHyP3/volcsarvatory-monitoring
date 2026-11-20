@@ -178,12 +178,12 @@ def load_stack(mb_id: str, name: str) -> pd.DataFrame:
     Returns:
         stack: Pandas dataframe with the results of asf search.
     """
-    folder_path = Path(f'parquet/{mb_id}')
+    folder_path = Path(f'/tmp/parquet/{mb_id}')
     folder_path.mkdir(parents=True, exist_ok=True)
     bucket_name = os.environ.get('PUBLISH_BUCKET')
     s3 = boto3.client('s3')
-    s3.download_file(bucket_name, f'parquet/{mb_id}/{name}.parquet', f'parquet/{mb_id}/{name}.parquet')
-    stack = pd.read_parquet(f'parquet/{mb_id}/{name}.parquet')
+    s3.download_file(bucket_name, f'parquet/{mb_id}/{name}.parquet', f'/tmp/parquet/{mb_id}/{name}.parquet')
+    stack = pd.read_parquet(f'/tmp/parquet/{mb_id}/{name}.parquet')
     return stack
 
 
@@ -195,12 +195,12 @@ def upload_stack(stack: pd.DataFrame, mb_id: str, name: str) -> None:
         mb_id: Multiburst ID.
         name: Name made by the dates and season.
     """
-    folder_path = Path(f'parquet/{mb_id}')
+    folder_path = Path(f'/tmp/parquet/{mb_id}')
     folder_path.mkdir(parents=True, exist_ok=True)
-    stack.to_parquet(f'parquet/{mb_id}/{name}.parquet')
+    stack.to_parquet(f'/tmp/parquet/{mb_id}/{name}.parquet')
     bucket_name = os.environ.get('PUBLISH_BUCKET')
     s3 = boto3.client('s3')
-    s3.upload_file(f'parquet/{mb_id}/{name}.parquet', bucket_name, f'parquet/{mb_id}/{name}.parquet')
+    s3.upload_file(f'/tmp/parquet/{mb_id}/{name}.parquet', bucket_name, f'parquet/{mb_id}/{name}.parquet')
 
 
 def get_target_dates(comp: list[datetime], bridge_target: str, tbaseline: int) -> list[list]:
