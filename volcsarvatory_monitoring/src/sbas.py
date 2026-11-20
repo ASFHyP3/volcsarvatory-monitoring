@@ -367,7 +367,7 @@ def plot_network(pairs: dict) -> None:
     plt.ylabel('Perp. baseline')
     folder_path = Path('/tmp/network')
     folder_path.mkdir(parents=True, exist_ok=True)
-    plt.savefig('tmp/network/network.pdf', bbox_inches='tight')
+    plt.savefig('/tmp/network/network.pdf', bbox_inches='tight')
 
 
 def connect_network(pairs: dict, target: str | None, tbaseline: int) -> dict[str, dict]:
