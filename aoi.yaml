@@ -438,17 +438,6 @@ Trident:
   target_date:
   bridge_years:
   resolution:
-Aniakchak:
-  AOI:
-  - -159.0
-  - -156.4258
-  - 56.3679
-  - 57.3559
-  temporal_baseline:
-  season:
-  target_date:
-  bridge_years:
-  resolution:
 Blue:
   AOI:
   - -157.3207
@@ -1255,3 +1244,14 @@ PedersenLagoonLandslide:
   target_date:
   bridge_years:
   resolution: '5x1'
+Aniakchak:
+  AOI:
+  - -159.0
+  - -156.4258
+  - 56.3679
+  - 57.3559
+  temporal_baseline:
+  season:
+  target_date:
+  bridge_years:
+  resolution:
