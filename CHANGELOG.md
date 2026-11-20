@@ -13,6 +13,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - The lambda function pulls and uploads the results from CMR as a parquet file to the s3 bucket to avoid the timeout.
+- The auxiliary files are stored in folders to solve issue [#92](https://github.com/ASFHyP3/volcsarvatory-monitoring/issues/92)
 
 ## [0.1.4]
 

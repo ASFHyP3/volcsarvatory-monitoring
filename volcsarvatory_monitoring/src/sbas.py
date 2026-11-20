@@ -365,9 +365,9 @@ def plot_network(pairs: dict) -> None:
     plt.scatter(tacqs, pacqs, c='C1', s=1, zorder=2)  # type: ignore
     plt.xlabel('Date')
     plt.ylabel('Perp. baseline')
-    folder_path = Path('network')
+    folder_path = Path('/tmp/network')
     folder_path.mkdir(parents=True, exist_ok=True)
-    plt.savefig('network/network.pdf', bbox_inches='tight')
+    plt.savefig('/tmp/network/network.pdf', bbox_inches='tight')
 
 
 def connect_network(pairs: dict, target: str | None, tbaseline: int) -> dict[str, dict]:
