@@ -1,14 +1,18 @@
 """Module to find SBAS for a multiburst set."""
 
+import os
 import time
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import asf_search as asf
+import boto3
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
+import requests
 
 import prepare_multibursts as pm
 
@@ -23,10 +27,17 @@ def first_date_burst(burst_id: str, start: str | None = None) -> str:
     Returns:
         date: String with the date of the first acquisition.
     """
-    if start is not None:
-        results = asf.search(fullBurstID=burst_id, start=start, polarization=asf.POLARIZATION.VV)
-    else:
-        results = asf.search(fullBurstID=burst_id, polarization=asf.POLARIZATION.VV)
+    notdone = True
+    while notdone:
+        print(f'Finding first date for {burst_id}')
+        try:
+            if start is not None:
+                results = asf.search(fullBurstID=burst_id, start=start, polarization=asf.POLARIZATION.VV)
+            else:
+                results = asf.search(fullBurstID=burst_id, polarization=asf.POLARIZATION.VV)
+            notdone = False
+        except (requests.exceptions.JSONDecodeError, requests.exceptions.Timeout, asf.ASFSearchError):
+            pass
     dates = sorted([r.properties['stopTime'] for r in results if r.properties['stopTime'] is not None])
     return dates[0].split('T')[0]
 
@@ -91,43 +102,105 @@ def get_multi_stack(
     Returns:
         all_burst_stacks: Stack from union of multiple burst stacks
     """
+    name = (
+        start.replace('-', '')
+        + '_'
+        + end.replace('-', '')
+        + '_'
+        + season[0].replace('-', '')
+        + '_'
+        + season[1].replace('-', '')
+    )
+    try:
+        all_burst_stacks: pd.DataFrame = load_stack(dic['mb_id'], name)
+        return all_burst_stacks
+    except FileNotFoundError:
+        pass
     burst_stacks = []
-    tot_bursts = sum([len(dic[key]) for key in dic])
+    tot_bursts = sum([len(dic[key]) for key in dic if 'mb_id' not in key])
     for key, value in dic.items():
+        if 'mb_id' in key:
+            continue
         burst_ids = [f'{key}_{swath}' for swath in value]
         for bid in burst_ids:
             first_date = first_date_burst(bid)
             end_date = (datetime.strptime(first_date, '%Y-%m-%d').replace(tzinfo=UTC) + timedelta(days=1)).strftime(
                 '%Y-%m-%d'
             )
-            ref = asf.search(
-                fullBurstID=bid,
-                start=first_date,
-                end=end_date,
-                polarization=asf.POLARIZATION.VV,
-            )
-            stack = asf.search(
-                fullBurstID=bid,
-                start=start,
-                end=end,
-                season=pm.get_julian_season(season),
-                polarization=asf.POLARIZATION.VV,
-            )
+            notdone = True
+            while notdone:
+                try:
+                    print(f'Try asf stack for {bid}')
+                    ref = asf.search(
+                        fullBurstID=bid,
+                        start=first_date,
+                        end=end_date,
+                        polarization=asf.POLARIZATION.VV,
+                    )
+                    stack = asf.search(
+                        fullBurstID=bid,
+                        start=start,
+                        end=end,
+                        season=pm.get_julian_season(season),
+                        polarization=asf.POLARIZATION.VV,
+                    )
+                    notdone = False
+                except (requests.exceptions.JSONDecodeError, requests.exceptions.Timeout, asf.ASFSearchError):
+                    pass
             stack += ref
             stack = asf.baseline.calculate_perpendicular_baselines(ref[-1].properties['sceneName'], stack)
             stack = gpd.GeoDataFrame.from_features(stack.geojson())
+
             stack = stack[stack['sceneName'] != ref[-1].properties['sceneName']]
             burst_stacks.append(stack)
-    all_burst_stacks: pd.DataFrame = pd.concat(burst_stacks)
+    all_burst_stacks = pd.concat(burst_stacks)
     groups = list(set(all_burst_stacks['orbit']))
     for group in groups:
         bursts_group = len(all_burst_stacks[all_burst_stacks['orbit'] == group])
+        print(bursts_group, tot_bursts)
         if bursts_group < tot_bursts:
             all_burst_stacks = all_burst_stacks[all_burst_stacks['orbit'] != group]
     all_burst_stacks.sort_values(by='stopTime')
     bids = [elem['fullBurstID'] for elem in all_burst_stacks['burst']]
     all_burst_stacks['fullBurstID'] = bids
+
+    upload_stack(all_burst_stacks, dic['mb_id'], name)
     return all_burst_stacks
+
+
+def load_stack(mb_id: str, name: str) -> pd.DataFrame:
+    """Loads a asf search from the s3 bucket.
+
+    Args:
+        mb_id: Multiburst ID.
+        name: Name made by the dates and season.
+
+    Returns:
+        stack: Pandas dataframe with the results of asf search.
+    """
+    folder_path = Path(f'parquet/{mb_id}')
+    folder_path.mkdir(parents=True, exist_ok=True)
+    bucket_name = os.environ.get('PUBLISH_BUCKET')
+    s3 = boto3.client('s3')
+    s3.download_file(bucket_name, f'parquet/{mb_id}/{name}.parquet', f'parquet/{mb_id}/{name}.parquet')
+    stack = pd.read_parquet(f'parquet/{mb_id}/{name}.parquet')
+    return stack
+
+
+def upload_stack(stack: pd.DataFrame, mb_id: str, name: str) -> None:
+    """Uploads a asf search to the s3 bucket.
+
+    Args:
+        stack: Pandas dataframe with the results of asf search.
+        mb_id: Multiburst ID.
+        name: Name made by the dates and season.
+    """
+    folder_path = Path(f'parquet/{mb_id}')
+    folder_path.mkdir(parents=True, exist_ok=True)
+    stack.to_parquet(f'parquet/{mb_id}/{name}.parquet')
+    bucket_name = os.environ.get('PUBLISH_BUCKET')
+    s3 = boto3.client('s3')
+    s3.upload_file(f'parquet/{mb_id}/{name}.parquet', bucket_name, f'parquet/{mb_id}/{name}.parquet')
 
 
 def get_target_dates(comp: list[datetime], bridge_target: str, tbaseline: int) -> list[list]:
@@ -292,7 +365,9 @@ def plot_network(pairs: dict) -> None:
     plt.scatter(tacqs, pacqs, c='C1', s=1, zorder=2)  # type: ignore
     plt.xlabel('Date')
     plt.ylabel('Perp. baseline')
-    plt.savefig('network.pdf', bbox_inches='tight')
+    folder_path = Path('network')
+    folder_path.mkdir(parents=True, exist_ok=True)
+    plt.savefig('network/network.pdf', bbox_inches='tight')
 
 
 def connect_network(pairs: dict, target: str | None, tbaseline: int) -> dict[str, dict]:
@@ -336,7 +411,7 @@ def build_sbas_pairs(
     tbaseline: int,
     target: str | None,
     bridge: int,
-) -> dict[str, dict]:
+) -> tuple[dict[str, dict], int]:
     """Calculates a default sbas pairs for a multiburst set. The result is the merge of a seasonal sbas and all possible pairs for the current year.
 
     Args:
@@ -358,7 +433,7 @@ def build_sbas_pairs(
     ugids = stack['orbit'].unique().tolist()
     pairs = {}
     tacqs, pacqs = [], []
-    ini = time.time()
+    ini1 = time.time()
     for i, sec_gid in enumerate(ugids[0:-1]):
         for ref_gid in ugids[i + 1 : :]:
             refs = stack[stack['orbit'] == ref_gid]
@@ -392,11 +467,11 @@ def build_sbas_pairs(
                     tacqs.append(tsec)
                     pacqs.append(psec)
     fin = time.time()
-    print('Time to get pairs', fin - ini)
+    print('Time to get pairs', fin - ini1)
 
     pairs = connect_network(pairs, target, tbaseline=tbaseline)
 
-    return pairs
+    return pairs, int(fin - ini)
 
 
 def build_sbas_pairs_default(
@@ -427,28 +502,37 @@ def build_sbas_pairs_default(
     startt = start_date
     pairs: dict[str, dict] = {}
     isend = False
+    tot_duration = 0
     for year in range(years):
         endt = startt + timedelta(days=int(365 * bridge + tbaseline))
         if endt > end:
             endt = end
             isend = True
         print(f'Getting pairs between {startt.strftime("%Y-%m-%d")} and {endt.strftime("%Y-%m-%d")}')
-        pairs_add = build_sbas_pairs(
+        pairs_add, duration = build_sbas_pairs(
             dic, startt.strftime('%Y-%m-%d'), endt.strftime('%Y-%m-%d'), season, tbaseline, target, bridge
         )
-        startt = startt + timedelta(days=365)
+        if year == 0:
+            startt = datetime.strptime(str(startt.year) + '-' + season[0], '%Y-%m-%d').replace(tzinfo=UTC)
+        else:
+            startt = startt + timedelta(days=365)
         for i, pair in enumerate(pairs_add.keys()):
             if pair not in pairs:
                 pairs[pair] = pairs_add[pair]
         if isend:
             break
+        tot_duration += 2 * duration
+        if tot_duration / 60 > 8:
+            raise RuntimeError('The lambda function is about to timeout')
+        else:
+            tot_duration -= duration
 
     if check_available_acquisitions(dic, start_last.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')):
         season = (start_last.strftime('%m-%d'), end.strftime('%m-%d'))
         tbaseline = 144
         target = end.strftime('%m-%d')
         bridge = 0
-        pairs_add = build_sbas_pairs(
+        pairs_add, duration = build_sbas_pairs(
             dic,
             start_last.strftime('%Y-%m-%d'),
             end.strftime('%Y-%m-%d'),
@@ -499,7 +583,8 @@ def build_sbas_pairs_custom(
         start_yr = f'{season_yr}-{month_start.zfill(2)}-{day_start.zfill(2)}'
         end_yr = f'{season_yr}-{month_end.zfill(2)}-{day_end.zfill(2)}'
         if check_available_acquisitions(dic, start_yr, end_yr):
-            pairs = pairs | build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)
+            newpairs, _ = build_sbas_pairs(dic, start_yr, end_yr, season_tmp, tbaseline, target, bridge)
+            pairs = pairs | newpairs
 
     pairs = connect_network(pairs, target=target, tbaseline=tbaseline)
 
@@ -512,7 +597,7 @@ def get_sbas_pairs(
     season: dict | tuple[str, str] | None = None,
     target: str | None = None,
     bridge: int | None = None,
-    plot: bool = False,
+    plot: bool = True,
 ) -> dict[str, dict]:
     """Calculates the sbas pairs for a multiburst set.
 

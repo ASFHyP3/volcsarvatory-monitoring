@@ -214,7 +214,9 @@ def plot_coherence(
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
     plt.ylabel('Coherence')
     plt.xlabel('Date')
-    plt.savefig(f'coherence_{name}.pdf', bbox_inches='tight')
+    folder_path = Path('coherence')
+    folder_path.mkdir(parents=True, exist_ok=True)
+    plt.savefig(f'coherence/coherence_{name}.pdf', bbox_inches='tight')
 
 
 def update_aoi(gdf: gpd.GeoDataFrame) -> None:

@@ -275,6 +275,12 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 mb_id = product_mbid_from_message(message)
                 log.log(logging.INFO, f'Finding InSAR pairs for {mb_id}')
                 jobs = prepare_pairs([mb_id])
+                try:
+                    jobs = prepare_pairs([mb_id])
+                except RuntimeError as e:
+                    if 'The lambda function is about to timeout' in str(e):
+                        publish_sns_multiburst(mb_id)
+                    raise
                 if len(jobs) > 0:
                     _ = submit_jobs(jobs)
                     log.log(logging.INFO, f'Jobs submitted for {mb_id}: {len(jobs)}')
