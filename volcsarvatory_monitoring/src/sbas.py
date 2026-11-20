@@ -7,6 +7,7 @@ from pathlib import Path
 
 import asf_search as asf
 import boto3
+import botocore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -114,7 +115,7 @@ def get_multi_stack(
     try:
         all_burst_stacks: pd.DataFrame = load_stack(dic['mb_id'], name)
         return all_burst_stacks
-    except FileNotFoundError:
+    except (botocore.exceptions.ClientError, FileNotFoundError):
         pass
     burst_stacks = []
     tot_bursts = sum([len(dic[key]) for key in dic if 'mb_id' not in key])
