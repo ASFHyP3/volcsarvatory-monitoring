@@ -35,13 +35,14 @@ def prepare_multiburst_jobs(
 
     insar_jobs = []
     for pair in pairs:
-        prepared_job: dict = deepcopy(MULTIBURST_JOB_TEMPLATE)
-        prepared_job['name'] = project_name
-        prepared_job['job_parameters']['reference'] = pairs[pair]['refs']
-        prepared_job['job_parameters']['secondary'] = pairs[pair]['secs']
-        prepared_job['job_parameters']['looks'] = looks
-        prepared_job['job_parameters']['apply_water_mask'] = apply_water_mask
-        insar_jobs.append(prepared_job)
+        if len(pairs[pair]['refs']) == len(pairs[pair]['secs']):
+            prepared_job: dict = deepcopy(MULTIBURST_JOB_TEMPLATE)
+            prepared_job['name'] = project_name
+            prepared_job['job_parameters']['reference'] = pairs[pair]['refs']
+            prepared_job['job_parameters']['secondary'] = pairs[pair]['secs']
+            prepared_job['job_parameters']['looks'] = looks
+            prepared_job['job_parameters']['apply_water_mask'] = apply_water_mask
+            insar_jobs.append(prepared_job)
 
     for job in insar_jobs:
         job['job_parameters']['publish_bucket'] = os.environ.get('PUBLISH_BUCKET')
