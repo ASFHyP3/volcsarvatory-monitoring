@@ -131,11 +131,11 @@ def update_aoi_multibursts_paralell(aois: dict) -> tuple[gpd.GeoDataFrame, dict]
     subrut = partial(one_multibursts, ids=aoi_ids)
     mb_sets, _ = zip(*pool.map(subrut, range(len(aoi_ids))))
     mb_dics: dict[str, dict] = {}
-    resolution = aois[id]['resolution']
 
     for mb_set in mb_sets:
         keys = [key for key in mb_set]
         id = keys[0]
+        resolution = aois[id]['resolution']
         multibursts = mb_set[id]
         mb_dic: dict[str, dict] = {}
         for multiburst in multibursts:
@@ -406,6 +406,7 @@ def prepare_pairs(mb_ids: list[str]) -> list[dict]:
         bridge = mbs_dic[mb_id]['bridge_years']
         resolution = mbs_dic[mb_id]['resolution']
         try:
+            mb_set['mb_id'] = mb_id
             dpairs = deduplicate_pairs(mb_set, resolution, tbaseline, season, target, bridge)
         except RuntimeError as e:
             print(f'No pairs for {mb_id}')

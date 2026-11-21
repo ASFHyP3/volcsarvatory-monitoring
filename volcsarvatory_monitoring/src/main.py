@@ -267,19 +267,25 @@ def lambda_aoi_handler(event: dict, context: object) -> dict:
                 for mb_id in keys:
                     publish_sns_multiburst(mb_id)
                 current_dir = Path.cwd()
-                for file_path in current_dir.glob('coherence*.pdf'):
+                for file_path in current_dir.glob('coherence/coherence*.pdf'):
                     s3 = boto3.client('s3')
-                    s3.upload_file(file_path.name, bucket_name, f'aux/network_{mb_id}.pdf')
+                    s3.upload_file(file_path, bucket_name, f'coherence/coherence_{mb_id}.pdf')
             else:
                 message = json.loads(message)
                 mb_id = product_mbid_from_message(message)
                 log.log(logging.INFO, f'Finding InSAR pairs for {mb_id}')
                 jobs = prepare_pairs([mb_id])
+                try:
+                    jobs = prepare_pairs([mb_id])
+                except RuntimeError as e:
+                    if 'The lambda function is about to timeout' in str(e):
+                        publish_sns_multiburst(mb_id)
+                    raise
                 if len(jobs) > 0:
                     _ = submit_jobs(jobs)
                     log.log(logging.INFO, f'Jobs submitted for {mb_id}: {len(jobs)}')
                     s3 = boto3.client('s3')
-                    s3.upload_file('network.pdf', bucket_name, f'aux/network_{mb_id}.pdf')
+                    s3.upload_file('/tmp/network/network.pdf', bucket_name, f'network/network_{mb_id}.pdf')
         except Exception:
             log.exception(f'Could not process message {record["messageId"]}')
             batch_item_failures.append({'itemIdentifier': record['messageId']})

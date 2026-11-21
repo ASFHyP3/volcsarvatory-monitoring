@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5]
+
+### Added
+- Added landslide AOIs for Alaska from [ESEC](https://data.earthscope.org/app/products/portal/esec/) (20x20km boxes) between 2015-01-01 and 2024-08-27.
+
+### Changed
+- The lambda function pulls and uploads the results from CMR as a parquet file to the s3 bucket to avoid the timeout.
+- The auxiliary figures and parquets are stored in folders to solve issue [#92](https://github.com/ASFHyP3/volcsarvatory-monitoring/issues/92)
+
 ## [0.1.4]
 
 ### Added
